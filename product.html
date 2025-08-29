@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalles del Producto - Dimonti Store</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cal+Sans&family=Cinzel:wght@400;700&family=Inter:wght@400;500;700&family=Orbitron:wght@400..900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div id="product-loader" class="loader-container">
+        <div class="loader-image"></div>
+    </div>
+
+    <header>
+        <div class="header-container">
+            <div class="announcement-bar">
+                <span class="announcement-bar__message">CALIDAD TOP: IMPORTADO 1.1 AAA LISTO PARA ENVÍO 📦</span>
+            </div>
+            <div class="main-nav">
+                <div class="nav-left">
+                    <div class="search-bar">
+                        <i class="fas fa-search search-icon"></i>
+                        <input type="text" class="search-input" placeholder="Busque en toda la tienda aquí...">
+                    </div>
+                </div>
+                <div class="logo">
+                    <a href="index.html">
+                        <span class="logo-main">DIMONTI</span>
+                        <span class="logo-sub">STORE®</span>
+                    </a>
+                </div>
+                <div class="nav-right">
+                    <nav class="main-navigation">
+                        <ul class="nav-links">
+                             <li><a href="index.html">INICIO</a></li>
+                             <li><a href="index.html#category-section">TIENDA</a></li>
+                             <li><a href="index.html#nosotros-section">NOSOTROS</a></li>
+                        </ul>
+                    </nav>
+                    <a href="#" aria-label="Carrito de compras" class="cart-icon js-open-cart">
+                        <i class="fas fa-bag-shopping"></i>
+                        <span class="cart-count">0</span>
+                    </a>
+                    <button class="hamburger" aria-label="Abrir menú">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="mobile-menu">
+            <button class="close-menu" aria-label="Cerrar menú">&times;</button>
+            <nav>
+                <ul>
+                    <li><a href="index.html">INICIO</a></li>
+                    <li><a href="index.html#category-section">TIENDA</a></li>
+                    <li><a href="index.html#nosotros-section">NOSOTROS</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <div class="product-details-section">
+            <div id="product-content" class="product-details-container content-hidden">
+                <div class="product-gallery">
+                    <div class="main-image-container">
+                        <img id="main-product-image" src="" alt="Producto principal">
+                    </div>
+                    <div class="thumbnail-images">
+                    </div>
+                </div>
+
+                <div class="product-info-details">
+                    <h1 id="product-name"></h1>
+                    <div class="price-section">
+                        <span id="sale-price"></span>
+                        <span id="original-price"></span>
+                        <span class="sale-badge">SALE</span>
+                    </div>
+
+                    <div class="selector-section">
+                        <p class="selector-title">COLOR</p>
+                        <div id="color-palette" class="color-palette"></div>
+                    </div>
+
+                    <div class="selector-section">
+                        <p class="selector-title">TALLA</p>
+                        <div id="size-selector" class="size-selector"></div>
+                    </div>
+
+                    <div class="selector-section">
+                        <p class="selector-title">CANTIDAD</p>
+                        <div class="quantity-selector">
+                            <button class="quantity-btn" id="decrease-qty">-</button>
+                            <input type="number" id="quantity-input" value="1" min="1">
+                            <button class="quantity-btn" id="increase-qty">+</button>
+                        </div>
+                    </div>
+
+                    <div class="action-buttons">
+                        <button class="add-to-cart-btn">Añadir al carrito</button>
+                        <button class="buy-now-btn">Comprar ahora</button>
+                    </div>
+                    <div id="user-feedback" class="user-feedback"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <footer>
+        <div class="footer-container">
+            <div class="footer-column" id="footer-logo-column">
+                <a href="index.html" class="footer-logo">
+                    <span class="logo-main">DIMONTI</span>
+                    <span class="logo-sub">STORE®</span>
+                </a>
+            </div>
+            <div class="footer-column">
+                <h3>POLÍTICAS</h3>
+                <ul class="footer-links">
+                    <li><a href="#">Política De Datos</a></li>
+                    <li><a href="#">Política De Compra</a></li>
+                    <li><a href="#">Política de Privacidad</a></li>
+                    <li><a href="#">Política de Cookies</a></li>
+                </ul>
+            </div>
+            <div class="footer-column">
+                <h3>ENLACES</h3>
+                <ul class="footer-links">
+                    <li><a href="#">¿Dónde Está Mi Pedido?</a></li>
+                    <li><a href="#">Guía de Tallas</a></li>
+                    <li><a href="#">Envíos y Devoluciones</a></li>
+                </ul>
+            </div>
+            <div class="footer-column">
+                <h3>CONTACTO</h3>
+                <ul class="footer-contact">
+                    <li><i class="fas fa-location-dot"></i> <span>La Petita, Cl. 13 # 19 - 71, Bogotá, Colombia</span></li>
+                    <li><i class="fab fa-whatsapp"></i> <span>301 6593662</span></li>
+                    <li><i class="fas fa-envelope"></i> <span>dimontistore@gmail.com</span></li>
+                    <li><i class="fas fa-clock"></i> <span>Lunes - Viernes 09am a 6pm</span></li>
+                </ul>
+                <div class="footer-social">
+                    <h3>SÍGUENOS EN REDES</h3>
+                    <div class="social-icons">
+                        <a href="https://www.facebook.com/dimontistore" target="_blank" rel="noopener noreferrer" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+                        <a href="https://www.instagram.com/dimontistore/" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+                        <a href="https://www.tiktok.com/@dimontistore_" target="_blank" rel="noopener noreferrer" aria-label="TikTok"><i class="fab fa-tiktok"></i></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <a href="https://wa.me/573016593662" class="whatsapp-float" target="_blank" aria-label="Contactar por WhatsApp">
+        <i class="fab fa-whatsapp"></i>
+    </a>
+    
+    <div class="cart-overlay"></div>
+    <div class="side-cart">
+        <div class="side-cart-header">
+            <h3>Tu Carrito</h3>
+            <button class="close-cart-btn js-close-cart">&times;</button>
+        </div>
+        <div class="side-cart-body">
+            </div>
+        <div class="side-cart-footer">
+            </div>
+    </div>
+    
+    <script src="shared.js"></script>
+    <script src="product-script.js"></script>
+</body>
+</html>
