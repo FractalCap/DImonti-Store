@@ -1,5 +1,8 @@
 document.addEventListener('DOMContentLoaded', function() {
     
+    // === WhatsApp de Dimonti en formato E.164 (Colombia = 57) ===
+    const DIMONTI_WA = '573016593662'; // cambia por el tuyo si aplica
+
     // --- Lógica para el Menú Móvil (Hamburguesa) ---
     const hamburgerBtn = document.querySelector('.hamburger');
     const mobileMenu = document.querySelector('.mobile-menu');
@@ -24,7 +27,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const sideCart = document.querySelector('.side-cart');
     
     function formatCurrency(value) {
-        return `$${Number(value).toLocaleString('es-CO')} COP`;
+        return `$${Number(value).toLocaleString('es-CO')}`;
     }
 
     // --- Funciones para abrir y cerrar el carrito ---
@@ -107,7 +110,7 @@ document.addEventListener('DOMContentLoaded', function() {
         cartFooter.innerHTML = footerHTML;
     }
     
-    // --- Función para actualizar cantidad o eliminar ---
+    // --- Actualizar cantidad / eliminar ---
     function updateCartItem(itemId, newQuantity) {
         let cart = JSON.parse(localStorage.getItem('dimontiCart')) || [];
         const itemIndex = cart.findIndex(item => item.id === itemId);
@@ -124,7 +127,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Delegación de eventos para manejar clics dentro del carrito
+    // Delegación de eventos dentro del carrito
     sideCart.addEventListener('click', (event) => {
         const target = event.target;
         
@@ -155,7 +158,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // --- Función para actualizar el contador del ícono del carrito ---
+    // --- Contador del ícono del carrito ---
     window.updateCartIcon = function() {
         const cart = JSON.parse(localStorage.getItem('dimontiCart')) || [];
         const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
@@ -165,12 +168,68 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     };
 
-    // Actualizar el icono al cargar la página
+    // Al cargar la página
     window.updateCartIcon();
 
     // ===================================================================
-    // === INICIO: CÓDIGO ACTUALIZADO PARA EL MODAL DE PAGO MULTI-PASO ===
+    // === MODAL DE PAGO (3 PASOS) =======================================
     // ===================================================================
+
+    // Utilidades para WhatsApp + Ticket
+    function waLink(phoneE164, text) {
+        return `https://wa.me/${encodeURIComponent(phoneE164)}?text=${encodeURIComponent(text)}`;
+    }
+    function genOrderId() {
+        return 'DIM-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).slice(2,8).toUpperCase();
+    }
+    function collectBillingData(root = document) {
+        const get = sel => (root.querySelector(sel)?.value || '').trim();
+        return {
+            nombre:     get('#billing_first_name') || get('#recipient-name') || get('[name="billing_first_name"]'),
+            apellidos:  get('#billing_last_name')  || get('[name="billing_last_name"]'),
+            pais:       get('#billing_country')    || get('[name="billing_country"]') || 'Colombia',
+            direccion:  get('#billing_address_1')  || get('#shipping-address') || get('[name="billing_address_1"]'),
+            direccion2: get('#billing_address_2')  || get('[name="billing_address_2"]'),
+            ciudad:     get('#billing_city')       || get('[name="billing_city"]'),
+            departamento:get('#billing_state')     || get('[name="billing_state"]'),
+            postal:     get('#billing_postcode')   || get('[name="billing_postcode"]'),
+            telefono:   get('#billing_phone')      || get('[name="billing_phone"]'),
+            email:      get('#billing_email')      || get('[name="billing_email"]'),
+            notas:      get('#order_comments')     || get('[name="order_comments"]')
+        };
+    }
+    function buildTicket({orderId, cart, totales, metodo, facturacion}) {
+        const L = [];
+        L.push('¡Hola Dimonti Store! 👋');
+        L.push('');
+        L.push(`*ORDER ID:* ${orderId}`);
+        L.push('');
+        L.push('*DATOS DE FACTURACIÓN*');
+        if (facturacion.nombre)       L.push(`- *Nombre:* ${facturacion.nombre}`);
+        if (facturacion.apellidos)    L.push(`- *Apellidos:* ${facturacion.apellidos}`);
+        if (facturacion.pais)         L.push(`- *País/Región:* ${facturacion.pais}`);
+        if (facturacion.direccion)    L.push(`- *Dirección:* ${facturacion.direccion}`);
+        if (facturacion.direccion2)   L.push(`- *Apto/Det:* ${facturacion.direccion2}`);
+        if (facturacion.ciudad)       L.push(`- *Ciudad:* ${facturacion.ciudad}`);
+        if (facturacion.departamento) L.push(`- *Depto:* ${facturacion.departamento}`);
+        if (facturacion.postal)       L.push(`- *C.P.:* ${facturacion.postal}`);
+        if (facturacion.telefono)     L.push(`- *Tel.:* ${facturacion.telefono}`);
+        if (facturacion.email)        L.push(`- *Email:* ${facturacion.email}`);
+        if (facturacion.notas) { L.push(''); L.push(`*Notas del pedido:* ${facturacion.notas}`); }
+
+        L.push('');
+        L.push('*RESUMEN DE PEDIDO*');
+        cart.forEach(it => {
+            L.push(`- *${it.quantity}x* ${it.name} (Color: ${it.color}, Talla: ${it.size})`);
+        });
+        if (totales.subtotal) L.push(`\n*Subtotal:* ${totales.subtotal}`);
+        if (totales.envio)    L.push(`*Envío:* ${totales.envio}`);
+        if (totales.total)    L.push(`*Total:* ${totales.total}`);
+
+        L.push('');
+        L.push(`*Método de Pago:* ${metodo}`);
+        return L.join('\n');
+    }
 
     function createPaymentModal() {
         document.querySelector('.payment-modal-overlay')?.remove();
@@ -183,7 +242,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 <div class="modal-progress-bar">
                     <div class="progress-header">
-                        <h4 id="current-step-title">Dirección</h4>
+                        <h4 id="current-step-title">Datos y Resumen</h4>
                     </div>
                     <div class="progress-line-container">
                         <div class="progress-line-active"></div>
@@ -191,16 +250,49 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
                 <div class="modal-views-container">
 
+                    <!-- PASO 1: Formulario + Resumen en Vivo (dos columnas) -->
                     <div class="modal-view active" id="view-1">
-                        <div class="shipping-form">
-                            <input type="text" id="recipient-name" placeholder="Nombre completo de quien recibe" autocomplete="name">
-                            <input type="text" id="shipping-address" placeholder="Dirección completa (incluye ciudad y detalles)" autocomplete="street-address">
+                      <div class="two-col">
+                        <div class="col form-col">
+                          <div class="form-grid">
+                            <input type="text" id="recipient-name" placeholder="Nombre *" autocomplete="given-name">
+                            <input type="text" id="recipient-lastname" placeholder="Apellidos *" autocomplete="family-name">
+                            <select id="billing-country">
+                              <option value="Colombia" selected>Colombia</option>
+                            </select>
+                            <input type="text" id="shipping-address" placeholder="Dirección de la calle *" autocomplete="address-line1">
+                            <input type="text" id="shipping-address-2" placeholder="Apartamento, habitación, etc. (opcional)" autocomplete="address-line2">
+                            <input type="text" id="billing-city" placeholder="Población *" autocomplete="address-level2">
+                            <input type="text" id="billing-state" placeholder="Departamento *" autocomplete="address-level1">
+                            <input type="text" id="billing-postcode" placeholder="Código postal (opcional)" autocomplete="postal-code">
+                            <input type="tel"  id="billing-phone" placeholder="Teléfono (opcional)" autocomplete="tel">
+                            <input type="email" id="billing-email" placeholder="Correo electrónico *" autocomplete="email">
+                            <textarea id="order-notes" placeholder="Notas del pedido (opcional)"></textarea>
+                          </div>
+                          <div class="modal-actions">
+                              <button id="to-step-2" class="modal-btn primary" disabled>Continuar</button>
+                          </div>
                         </div>
-                        <div class="modal-actions">
-                            <button id="continue-to-step-2" class="modal-btn primary" disabled>Continuar</button>
+
+                        <div class="col summary-col">
+                          <div class="summary-card">
+                            <h5 class="summary-title">Tu pedido</h5>
+                            <div id="live-billing-preview" class="billing-preview">
+                              <!-- Se llena en vivo con los datos -->
+                            </div>
+                            <div class="summary-divider"></div>
+                            <div id="cart-lines"></div>
+                            <div class="summary-totals">
+                              <div class="row"><span>Subtotal</span><span id="summary-subtotal">—</span></div>
+                              <div class="row"><span>Envío</span><span id="summary-shipping">—</span></div>
+                              <div class="row total"><span>Total</span><span id="summary-total">—</span></div>
+                            </div>
+                          </div>
                         </div>
+                      </div>
                     </div>
                     
+                    <!-- PASO 2: Método de pago + instrucciones -->
                     <div class="modal-view" id="view-2">
                         <div class="payment-options" style="grid-template-columns: 1fr;">
                             <div class="payment-option">
@@ -234,36 +326,28 @@ document.addEventListener('DOMContentLoaded', function() {
                                     <span>Tarjeta Crédito/Débito (via Bold)</span>
                                 </label>
                             </div>
+                            <!-- Contra Entrega -->
+                            <div class="payment-option">
+                                <input type="radio" id="pay-cod" name="payment_method" value="Contra Entrega">
+                                <label for="pay-cod" class="payment-label-flex">
+                                    <span>Contra Entrega</span>
+                                </label>
+                            </div>
                         </div>
-                        <div class="modal-actions"><button id="continue-to-step-3" class="modal-btn primary" disabled>Continuar</button></div>
+
+                        <div id="payment-instructions-content" style="margin-top: 15px;"></div>
+
+                        <div class="modal-actions">
+                          <button id="to-step-3" class="modal-btn primary" disabled>Ir a WhatsApp</button>
+                        </div>
                     </div>
 
+                    <!-- PASO 3: Vista de resumen final (oculta el textarea; botón hace copiar+abrir) -->
                     <div class="modal-view" id="view-3">
-                        <div id="payment-instructions-content"></div>
-                        <div class="modal-actions"><button id="continue-to-step-4" class="modal-btn primary">Continuar al Resumen</button></div>
-                    </div>
-
-                    <div class="modal-view" id="view-4">
-                        <p style="font-size: 0.85rem; color: #555; margin-bottom: 15px; text-align: center;">Copia este mensaje para enviarlo por WhatsApp.</p>
-                        <textarea id="whatsapp-message-textarea" readonly></textarea>
-                        <div class="modal-actions"><button id="copy-order-btn" class="modal-btn primary">Copiar y Continuar</button></div>
-                    </div>
-
-                    <div class="modal-view" id="view-5">
-                        <div class="modal-final-step">
-                            <svg class="success-icon" style="color: #17a2b8;" xmlns="http://www.w3.org/2000/svg" height="60px" viewBox="0 0 512 512"><path fill="currentColor" d="M160 32c-35.3 0-64 28.7-64 64V320c0 35.3 28.7 64 64 64H352c35.3 0 64-28.7 64-64V96c0-35.3-28.7-64-64-64H160zM224 96a32 32 0 1 1 0 64 32 32 0 1 1 0-64zm64 32a16 16 0 1 1 32 0 16 16 0 1 1 -32 0zm-32 48a32 32 0 1 1 64 0 32 32 0 1 1 -64 0zm-80 80c0-26.5 21.5-48 48-48H320c26.5 0 48 21.5 48 48v32c0 26.5-21.5 48-48 48H176c-26.5 0-48-21.5-48-48V256z"/></svg>
-                             <h4 style="margin-top: 1rem;">¡Importante!</h4>
-                             <p>Asegúrate de tener a la mano el <strong>comprobante o captura de pantalla</strong> de tu pago. Lo necesitarás en el siguiente y último paso para confirmar tu pedido.</p>
-                             <div class="modal-actions"><button id="continue-to-step-6" class="modal-btn primary">Entendido, continuar</button></div>
-                        </div>
-                    </div>
-                    
-                    <div class="modal-view" id="view-6">
-                        <div class="modal-final-step">
-                             <svg class="success-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"></path></svg>
-                            <h4>¡Todo listo!</h4>
-                            <p>Haz clic abajo para abrir WhatsApp. Pega el resumen de tu pedido y no olvides <strong>adjuntar el comprobante de pago</strong> para confirmar tu compra.</p>
-                            <div class="modal-actions"><a href="#" id="open-whatsapp-btn" class="modal-btn whatsapp" target="_blank">Enviar a WhatsApp</a></div>
+                        <p style="font-size: 0.9rem; color: #555; margin-bottom: 10px; text-align: center;">Al continuar se copiará tu pedido y se abrirá WhatsApp con el ticket listo para enviar.</p>
+                        <textarea id="whatsapp-message-textarea" readonly style="display:none;"></textarea>
+                        <div class="modal-actions">
+                          <button id="copy-open-wa" class="modal-btn primary">Copiar y abrir WhatsApp</button>
                         </div>
                     </div>
 
@@ -271,266 +355,257 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>`;
         document.body.appendChild(modalOverlay);
 
-        const generalStyle = document.createElement('style');
-        generalStyle.innerHTML = `
-            /* --- General Modal Styles --- */
-            .payment-modal-content { max-width: 580px; padding: 2.5rem; }
-            
-            /* --- Shipping Form --- */
-            .shipping-form { display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1.5rem; }
-            .shipping-form input {
-                width: 100%;
-                padding: 12px 15px;
-                border: 1px solid #ccc;
-                border-radius: 5px;
-                font-size: 1rem;
-            }
-            .shipping-form input:focus { border-color: #333; outline: none; }
+        // --- Estilos internos del modal (solo para esta vista) ---
+        const styles = document.createElement('style');
+        styles.innerHTML = `
+            .payment-modal-content { max-width: 980px; padding: 2rem; }
+            .two-col { display: grid; grid-template-columns: 1.2fr 1fr; gap: 20px; }
+            @media (max-width: 900px){ .two-col { grid-template-columns: 1fr; } }
 
-            /* --- Payment Method Labels --- */
-            .payment-label-flex { display: flex; flex-direction: row; justify-content: start; align-items: center; gap: 15px; height: auto; padding: 1rem; }
-            .payment-label-flex img { height: 28px; max-width: 110px; object-fit: contain; }
-            .payment-icon-wrapper { display: flex; align-items: center; gap: 10px; }
-            .payment-icon-wrapper img { height: 25px; }
+            .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+            .form-grid input, .form-grid select, .form-grid textarea {
+                width: 100%; padding: 12px 14px; border: 1px solid #ccc; border-radius: 6px; font-size: .95rem;
+            }
+            .form-grid textarea { grid-column: span 2; min-height: 80px; }
+            #recipient-name, #recipient-lastname, #billing-country, #billing-city, #billing-state { }
+            #shipping-address, #shipping-address-2, #billing-email { grid-column: span 2; }
 
-            /* --- INICIO: ESTILOS DE BARRA DE PROGRESO REDISEÑADA --- */
-            .modal-progress-bar {
-                margin-bottom: 2.5rem;
-                position: relative;
-            }
-            .progress-header {
-                text-align: center;
-                margin-bottom: 0.75rem;
-                position: relative;
-                height: 24px; /* Altura fija para evitar saltos de diseño */
-            }
-            #current-step-title {
-                font-size: 1rem;
-                font-weight: 600;
-                color: #333;
-                text-transform: uppercase;
-                letter-spacing: 1px;
-                position: absolute;
-                width: 100%;
-                left: 0;
-                top: 0;
-                opacity: 1;
-                /* Transición para la animación de entrada/salida */
-                transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out;
-            }
-            #current-step-title.exiting {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-            .progress-line-container {
-                width: 100%;
-                height: 4px;
-                background-color: #e5e5e5;
-                border-radius: 4px;
-                position: relative;
-                overflow: hidden;
-            }
-            .progress-line-active {
-                position: absolute;
-                top: 0;
-                left: 0;
-                height: 100%;
-                background-color: #1a1a1a;
-                border-radius: 4px;
-                width: 0%;
-                transition: width 0.5s cubic-bezier(0.65, 0, 0.35, 1);
-            }
-            /* --- FIN: ESTILOS DE BARRA DE PROGRESO REDISEÑADA --- */
+            .summary-card { border: 1px solid #e5e5e5; border-radius: 8px; padding: 16px; background: #fff; }
+            .summary-title { font-size: 1.1rem; margin: 0 0 10px; }
+            .billing-preview { font-size: .9rem; color: #333; line-height: 1.4; }
+            .billing-preview .line { display:flex; justify-content: space-between; gap:10px; }
+            .summary-divider { height: 1px; background: #eee; margin: 12px 0; }
+            #cart-lines .item { display:flex; justify-content: space-between; gap: 10px; font-size: .9rem; margin: 6px 0; }
+            #cart-lines .meta { color: #666; font-size: .85rem; }
+            .summary-totals { margin-top: 10px; }
+            .summary-totals .row { display:flex; justify-content: space-between; padding: 6px 0; }
+            .summary-totals .row.total { border-top: 1px solid #eee; font-weight: 700; }
 
-            /* --- View Animation --- */
-            @keyframes slideInFade {
-                from { opacity: 0; transform: translateY(15px); }
-                to { opacity: 1; transform: translateY(0); }
-            }
-            .modal-view { display: none; }
-            .modal-view.active { display: block; animation: slideInFade 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; }
+            /* Progreso */
+            .modal-progress-bar { margin-bottom: 1rem; position: relative; }
+            .progress-header { text-align: center; margin-bottom: .5rem; position: relative; height: 24px; }
+            #current-step-title { font-size: 1rem; font-weight: 600; color: #333; text-transform: uppercase; letter-spacing: 1px; position: absolute; width: 100%; left: 0; top: 0; opacity: 1; transition: opacity .2s, transform .2s; }
+            #current-step-title.exiting { opacity: 0; transform: translateY(-10px); }
+            .progress-line-container { width: 100%; height: 4px; background-color: #e5e5e5; border-radius: 4px; overflow: hidden; }
+            .progress-line-active { height: 100%; background-color: #1a1a1a; border-radius: 4px; width: 0%; transition: width .5s cubic-bezier(.65,0,.35,1); }
+
+            /* Labels de métodos */
+            .payment-label-flex { display:flex; align-items:center; gap: 15px; padding: .9rem; }
+            .payment-label-flex img { height: 26px; max-width: 110px; object-fit: contain; }
+            .payment-icon-wrapper { display:flex; align-items:center; gap: 10px; }
+            .payment-icon-wrapper img { height: 23px; }
+
+            /* Instrucciones */
+            .payment-details-box { border: 1px solid #e5e5e5; border-radius: 8px; padding: 16px; margin-top: 10px; }
+            .payment-info-line { display:flex; align-items:center; justify-content:center; gap:10px; background:#f9f9f9; padding:10px; border-radius:5px; margin:10px 0; }
+            .modal-btn-copy { background:#555; color:#fff; border:0; padding:6px 10px; border-radius:5px; cursor:pointer; }
         `;
-        modalOverlay.querySelector('.payment-modal-content').appendChild(generalStyle);
+        modalOverlay.querySelector('.payment-modal-content').appendChild(styles);
 
         setTimeout(() => modalOverlay.classList.add('active'), 10);
         
+        // ---------- Progreso ----------
         const views = modalOverlay.querySelectorAll('.modal-view');
         const progressLine = modalOverlay.querySelector('.progress-line-active');
-        
-        // --- INICIO: LÓGICA PARA LA NUEVA BARRA DE PROGRESO ---
-        const stepTitles = ["Dirección de Envío", "Método de Pago", "Realizar Pago", "Resumen del Pedido", "Adjuntar Comprobante", "Finalizar por WhatsApp"];
+        const stepTitles = ["Datos y Resumen", "Método de Pago", "WhatsApp"];
         const currentStepTitleEl = modalOverlay.querySelector('#current-step-title');
 
-        const goToView = (viewNumber) => {
-            // Actualizar la línea de progreso
-            const progressPercentage = ((viewNumber - 1) / (stepTitles.length - 1)) * 100;
-            progressLine.style.width = `${progressPercentage}%`;
-
-            // Animar y cambiar el título del paso
+        const goToView = (n) => {
+            const pct = ((n - 1) / (stepTitles.length - 1)) * 100;
+            progressLine.style.width = `${pct}%`;
             currentStepTitleEl.classList.add('exiting');
             setTimeout(() => {
-                currentStepTitleEl.textContent = stepTitles[viewNumber - 1];
+                currentStepTitleEl.textContent = stepTitles[n - 1] || stepTitles[stepTitles.length - 1];
                 currentStepTitleEl.classList.remove('exiting');
-            }, 200);
-
-            // Cambiar la vista principal
+            }, 180);
             views.forEach(v => v.classList.remove('active'));
-            const activeView = modalOverlay.querySelector(`#view-${viewNumber}`);
-            if(activeView) activeView.classList.add('active');
+            modalOverlay.querySelector(`#view-${n}`)?.classList.add('active');
         };
-        // --- FIN: LÓGICA PARA LA NUEVA BARRA DE PROGRESO ---
 
+        // ---------- Rellenar resumen de carrito ----------
+        function renderCartSummaryPanel() {
+            const cart = JSON.parse(localStorage.getItem('dimontiCart')) || [];
+            const linesEl = modalOverlay.querySelector('#cart-lines');
+            const subEl = modalOverlay.querySelector('#summary-subtotal');
+            const shipEl = modalOverlay.querySelector('#summary-shipping');
+            const totEl = modalOverlay.querySelector('#summary-total');
 
-        // --- Variables para guardar los datos del cliente ---
-        let recipientName = '';
-        let shippingAddress = '';
-        let selectedPaymentMethod = '';
-        
-        const copyToClipboard = (text, button) => {
-            navigator.clipboard.writeText(text).then(() => {
-                const originalText = button.textContent;
-                button.textContent = '¡Copiado!';
-                button.style.backgroundColor = '#28a745';
-                setTimeout(() => {
-                    button.textContent = originalText;
-                    button.style.backgroundColor = '';
-                }, 2000);
+            if (!linesEl) return;
+
+            linesEl.innerHTML = '';
+            let subtotal = 0;
+            cart.forEach(it => {
+                subtotal += it.price * it.quantity;
+                linesEl.innerHTML += `
+                  <div class="item">
+                    <div>
+                      <div>${it.quantity}× ${it.name}</div>
+                      <div class="meta">Color: ${it.color} • Talla: ${it.size}</div>
+                    </div>
+                    <div>${formatCurrency(it.price * it.quantity)}</div>
+                  </div>`;
             });
-        };
 
-        // --- Lógica para PASO 1: Dirección ---
-        const nameInput = modalOverlay.querySelector('#recipient-name');
-        const addressInput = modalOverlay.querySelector('#shipping-address');
-        const continueBtnStep1 = modalOverlay.querySelector('#continue-to-step-2');
-        
-        const validateStep1 = () => {
-            continueBtnStep1.disabled = !(nameInput.value.trim() && addressInput.value.trim());
-        };
-        nameInput.addEventListener('input', validateStep1);
-        addressInput.addEventListener('input', validateStep1);
+            subEl.textContent = formatCurrency(subtotal);
+            // Si manejas envío fijo, cámbialo aquí. Lo dejo como $13.000 si quieres replicar tu screenshot:
+            const envio = 13000;
+            shipEl.textContent = `$${Number(envio).toLocaleString('es-CO')}`;
+            totEl.textContent = formatCurrency(subtotal + envio);
+        }
 
-        continueBtnStep1.addEventListener('click', () => {
-            recipientName = nameInput.value.trim();
-            shippingAddress = addressInput.value.trim();
+        // ---------- Vista previa de facturación en vivo ----------
+        function updateBillingPreview() {
+            const pv = modalOverlay.querySelector('#live-billing-preview');
+            if (!pv) return;
+            const data = collectBillingData(modalOverlay);
+            pv.innerHTML = `
+              <div class="line"><strong>Nombre:</strong><span>${(data.nombre || '')} ${(data.apellidos || '')}</span></div>
+              <div class="line"><strong>País:</strong><span>${data.pais || ''}</span></div>
+              <div class="line"><strong>Dirección:</strong><span>${data.direccion || ''} ${data.direccion2 ? ' - ' + data.direccion2 : ''}</span></div>
+              <div class="line"><strong>Ciudad/Depto:</strong><span>${data.ciudad || ''} ${data.departamento ? ' / ' + data.departamento : ''}</span></div>
+              <div class="line"><strong>Código Postal:</strong><span>${data.postal || ''}</span></div>
+              <div class="line"><strong>Teléfono:</strong><span>${data.telefono || ''}</span></div>
+              <div class="line"><strong>Email:</strong><span>${data.email || ''}</span></div>
+              ${data.notas ? `<div class="line"><strong>Notas:</strong><span>${data.notas}</span></div>` : ''}
+            `;
+        }
+
+        // Inicializar paneles
+        renderCartSummaryPanel();
+        updateBillingPreview();
+
+        // ---------- Validación Paso 1 ----------
+        const requiredIds = ['#recipient-name','#recipient-lastname','#shipping-address','#billing-city','#billing-state','#billing-email'];
+        const btnToStep2 = modalOverlay.querySelector('#to-step-2');
+
+        function validateStep1() {
+            const ok = requiredIds.every(sel => (modalOverlay.querySelector(sel)?.value || '').trim().length > 1);
+            btnToStep2.disabled = !ok;
+        }
+        modalOverlay.querySelectorAll('#view-1 input, #view-1 textarea, #view-1 select').forEach(el => {
+            el.addEventListener('input', () => { updateBillingPreview(); validateStep1(); });
+            el.addEventListener('change', () => { updateBillingPreview(); validateStep1(); });
+        });
+        validateStep1();
+
+        btnToStep2.addEventListener('click', () => {
             goToView(2);
         });
 
-        // --- Lógica para PASO 2: Método de Pago ---
-        const continueBtnStep2 = modalOverlay.querySelector('#continue-to-step-3');
+        // ---------- Paso 2: Método de pago + instrucciones ----------
+        let selectedPaymentMethod = '';
+        const btnToStep3 = modalOverlay.querySelector('#to-step-3');
+        const instructionsContainer = modalOverlay.querySelector('#payment-instructions-content');
+
+        function renderInstructions(method) {
+            const totalText = modalOverlay.querySelector('#summary-total')?.textContent || 'N/A';
+            const box = (inner) => `<div class="payment-details-box">${inner}</div>`;
+            const totalBox = `<div class="payment-info-line"><strong>Total:</strong> <span>${totalText}</span></div>`;
+            let html = '';
+            switch (method) {
+                case 'ADDI':
+                    html = box(`${totalBox}<p>Para pagar con <strong>ADDI</strong>, te enviaremos un link seguro por WhatsApp.</p>`);
+                    break;
+                case 'Nequi / Daviplata':
+                    html = box(`${totalBox}
+                        <p>Envía el pago a:</p>
+                        <div class="payment-info-line"><strong id="nequi-number">300 500 1484</strong>
+                        <button id="copy-nequi-btn" class="modal-btn-copy">Copiar</button></div>
+                        <p style="font-size:.85rem;color:#777">Guarda el comprobante para adjuntarlo por WhatsApp.</p>`);
+                    break;
+                case 'Transferencia Bancolombia':
+                    html = box(`${totalBox}
+                        <p>Cuenta de Ahorros <strong>Bancolombia</strong>:</p>
+                        <div class="payment-info-line" style="flex-direction:column;align-items:flex-start;">
+                          <div><strong>Titular:</strong> ALEJANDRA BOLAÑOZ MONTILLA</div>
+                          <div><strong>N° Cuenta:</strong> <span id="bancolombia-number">567 079227 75</span></div>
+                        </div>
+                        <button id="copy-bancolombia-btn" class="modal-btn-copy">Copiar Número de Cuenta</button>
+                        <p style="font-size:.85rem;color:#777">Guarda el comprobante para adjuntarlo por WhatsApp.</p>`);
+                    break;
+                case 'Tarjeta Crédito/Débito (Bold)':
+                    html = box(`${totalBox}<p>Te enviaremos un <strong>link de pago Bold</strong> por WhatsApp.</p>`);
+                    break;
+                case 'Contra Entrega':
+                    html = box(`${totalBox}<p><strong>Contra Entrega:</strong> Pagas en efectivo al recibir.</p>`);
+                    break;
+            }
+            instructionsContainer.innerHTML = html;
+
+            const copy = (sel, btnSel) => {
+                const btn = modalOverlay.querySelector(btnSel);
+                if (btn) btn.addEventListener('click', (e) => {
+                    const text = modalOverlay.querySelector(sel)?.textContent || '';
+                    navigator.clipboard.writeText(text).then(()=>{
+                        const t = e.target;
+                        const o = t.textContent;
+                        t.textContent = 'Copiado';
+                        setTimeout(()=>t.textContent=o,1200);
+                    });
+                });
+            };
+            copy('#nequi-number', '#copy-nequi-btn');
+            copy('#bancolombia-number', '#copy-bancolombia-btn');
+        }
+
         modalOverlay.querySelectorAll('input[name="payment_method"]').forEach(radio => {
             radio.addEventListener('change', (e) => {
                 selectedPaymentMethod = e.target.value;
-                continueBtnStep2.disabled = false;
+                btnToStep3.disabled = !selectedPaymentMethod;
+                renderInstructions(selectedPaymentMethod);
             });
         });
-        
-        continueBtnStep2.addEventListener('click', () => {
-            const instructionsContainer = modalOverlay.querySelector('#payment-instructions-content');
-            const totalText = document.getElementById('cart-subtotal')?.textContent || 'N/A';
-            let contentHTML = '';
 
-            const totalBoxHTML = `<div class="total-to-pay-box"><span>Total a Pagar:</span><strong>${totalText}</strong></div>`;
-
-            switch (selectedPaymentMethod) {
-                case 'ADDI': // Lógica para ADDI
-                    contentHTML = `<div class="payment-details-box">${totalBoxHTML}<p>¡Excelente elección! Para pagar con <strong>ADDI</strong>, necesitamos enviarte un link de pago seguro.</p><p>Por favor, continúa al siguiente paso, copia tu resumen de pedido y contáctanos por WhatsApp para recibir tu link de pago.</p></div>`;
-                    break;
-                case 'Nequi / Daviplata':
-                    contentHTML = `<div class="payment-details-box">${totalBoxHTML}<p>Envía tu pago a la siguiente línea <strong>Nequi o Daviplata</strong>:</p><div class="payment-info-line"><strong id="nequi-number">300 500 1484</strong><button id="copy-nequi-btn" class="modal-btn-copy">Copiar</button></div><p class="payment-reminder">Recuerda tomar captura de pantalla del comprobante.</p></div>`;
-                    break;
-                case 'Transferencia Bancolombia':
-                    contentHTML = `<div class="payment-details-box">${totalBoxHTML}<p>Realiza la transferencia a la siguiente <strong>Cuenta de Ahorros Bancolombia</strong>:</p><p class="payment-account-details"><strong>Titular:</strong> ALEJANDRA BOLAÑOZ MONTILLA<br><strong>N° Cuenta:</strong> <span id="bancolombia-number">567 079227 75</span></p><button id="copy-bancolombia-btn" class="modal-btn-copy full-width">Copiar Número de Cuenta</button><p class="payment-reminder">Recuerda tomar captura de pantalla del comprobante.</p></div>`;
-                    break;
-                case 'Tarjeta Crédito/Débito (Bold)':
-                    contentHTML = `<div class="payment-details-box">${totalBoxHTML}<p>¡Perfecto! Para pagar con tarjeta, necesitamos enviarte un <strong>link de pago seguro de Bold</strong>.</p><p>Por favor, continúa al siguiente paso, copia tu resumen de pedido y contáctanos por WhatsApp para recibir tu link.</p></div>`;
-                    break;
-            }
-            instructionsContainer.innerHTML = contentHTML;
-
-            const style = document.createElement('style');
-            style.innerHTML = `
-                .payment-details-box { border: 1px solid #e5e5e5; border-radius: 8px; padding: 20px; text-align: center; }
-                .payment-details-box p { margin-bottom: 1rem; color: #333; line-height: 1.5; }
-                .payment-info-line { display: flex; align-items: center; justify-content: center; gap: 15px; background-color: #f9f9f9; padding: 10px; border-radius: 5px; margin-bottom: 1rem; }
-                .payment-info-line strong { font-size: 1.2rem; color: #000; }
-                .modal-btn-copy { background-color: #555; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; transition: background-color 0.3s; font-weight: 500; }
-                .modal-btn-copy:hover { background-color: #333; }
-                .modal-btn-copy.full-width { width: 100%; padding: 12px; margin-top: 10px; }
-                .payment-account-details { background-color: #f9f9f9; padding: 15px; border-radius: 5px; text-align: left;}
-                .payment-reminder { font-size: 0.8rem; color: #888; margin-top: 1rem; margin-bottom: 0 !important; }
-                .total-to-pay-box { background-color: #f0f8ff; border: 1px solid #b0e0e6; border-radius: 8px; padding: 15px; margin-bottom: 1.5rem; text-align: center; }
-                .total-to-pay-box span { display: block; color: #555; font-size: 0.9rem; margin-bottom: 5px; }
-                .total-to-pay-box strong { display: block; color: #000; font-size: 1.6rem; font-weight: 700; }
-            `;
-            instructionsContainer.appendChild(style);
-
-            if (selectedPaymentMethod === 'Nequi / Daviplata') {
-                modalOverlay.querySelector('#copy-nequi-btn').addEventListener('click', (e) => {
-                    const number = modalOverlay.querySelector('#nequi-number').textContent;
-                    copyToClipboard(number, e.target);
-                });
-            } else if (selectedPaymentMethod === 'Transferencia Bancolombia') {
-                modalOverlay.querySelector('#copy-bancolombia-btn').addEventListener('click', (e) => {
-                    const number = modalOverlay.querySelector('#bancolombia-number').textContent;
-                    copyToClipboard(number, e.target);
-                });
-            }
+        btnToStep3.addEventListener('click', () => {
             goToView(3);
         });
 
-        // --- Lógica para PASO 3: Instrucciones de Pago ---
-        modalOverlay.querySelector('#continue-to-step-4').addEventListener('click', () => {
-            let cart = JSON.parse(localStorage.getItem('dimontiCart')) || [];
-            let message = '¡Hola Dimonti Store! 👋\n\n';
-            message += `*DATOS DE ENVÍO*\n`
-            message += `*- Nombre:* ${recipientName}\n`;
-            message += `*- Dirección:* ${shippingAddress}\n\n`;
-            message += `*RESUMEN DE MI PEDIDO*\n`;
-            
-            cart.forEach(item => {
-                message += `- *${item.quantity}x* ${item.name} (Color: ${item.color}, Talla: ${item.size})\n`;
+        // ---------- Paso 3: Copiar + WhatsApp ----------
+        function buildCurrentTicket() {
+            const cart = JSON.parse(localStorage.getItem('dimontiCart')) || [];
+            const subtotalText = modalOverlay.querySelector('#summary-subtotal')?.textContent || '';
+            const envioText = modalOverlay.querySelector('#summary-shipping')?.textContent || '';
+            const totalText = modalOverlay.querySelector('#summary-total')?.textContent || '';
+            const billing = collectBillingData(modalOverlay);
+            const orderId = genOrderId();
+            return buildTicket({
+                orderId,
+                cart,
+                totales: { subtotal: subtotalText, envio: envioText, total: totalText },
+                metodo: selectedPaymentMethod || 'No especificado',
+                facturacion: billing
             });
-            const total = document.getElementById('cart-subtotal').textContent;
-            message += `\n*Total del Pedido:* ${total}\n`;
-            message += `*Método de Pago Elegido:* ${selectedPaymentMethod}`;
-            modalOverlay.querySelector('#whatsapp-message-textarea').value = message;
-            goToView(4);
-        });
-        
-        // --- Lógica para PASO 4: Copiar Resumen ---
-        modalOverlay.querySelector('#copy-order-btn').addEventListener('click', (e) => {
-            const textToCopy = modalOverlay.querySelector('#whatsapp-message-textarea').value;
-            copyToClipboard(textToCopy, e.target);
-            setTimeout(() => goToView(5), 500);
+        }
+
+        modalOverlay.querySelector('#copy-open-wa').addEventListener('click', () => {
+            const ticketText = buildCurrentTicket();
+            const ta = modalOverlay.querySelector('#whatsapp-message-textarea');
+            if (ta) ta.value = ticketText;
+
+            // Copiar
+            navigator.clipboard.writeText(ticketText).then(()=> {
+                // Abrir WhatsApp
+                const url = waLink(DIMONTI_WA, ticketText);
+                window.open(url, '_blank', 'noopener');
+
+                // Limpiar carrito y cerrar
+                localStorage.setItem('dimontiCart', JSON.stringify([]));
+                renderCart();
+                window.updateCartIcon();
+
+                modalOverlay.classList.remove('active');
+                setTimeout(() => modalOverlay.remove(), 300);
+            });
         });
 
-        // --- Lógica para PASO 5: Recordatorio Comprobante ---
-        modalOverlay.querySelector('#continue-to-step-6').addEventListener('click', () => {
-            goToView(6);
-        });
-        
-        // --- Lógica para PASO 6: Enviar a WhatsApp ---
+        // ---------- Navegación y cierre ----------
         const closeModal = () => {
             modalOverlay.classList.remove('active');
             setTimeout(() => modalOverlay.remove(), 300);
         };
-        
-        const whatsappNumber = '573016593662';
-        const whatsappLink = `https://wa.me/${whatsappNumber}`;
-        modalOverlay.querySelector('#open-whatsapp-btn').href = whatsappLink;
-
-        modalOverlay.querySelector('#open-whatsapp-btn').addEventListener('click', () => {
-            localStorage.setItem('dimontiCart', JSON.stringify([]));
-            renderCart();
-            window.updateCartIcon();
-            closeModal();
-        });
-        
         modalOverlay.querySelector('.close-btn').addEventListener('click', closeModal);
         modalOverlay.addEventListener('click', (e) => {
-            if (e.target === modalOverlay) {
-                closeModal();
-            }
+            if (e.target === modalOverlay) closeModal();
         });
     }
 });
