@@ -88,57 +88,64 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // --- LÓGICA PARA SLIDER DE TESTIMONIOS ---
-    const slidesContainer = document.querySelector('.testimonial-slides');
-    const slides = document.querySelectorAll('.testimonial-slide');
-    const dotsContainer = document.querySelector('.testimonial-dots');
+// Reemplazo: ahora el slider usa las diapositivas que YA están en el HTML (.testimonial-slide con <img>)
+// Mantiene auto-rotado, dots y swipe, sin generar elementos desde JS.
 
-    if (slidesContainer && slides.length > 0 && dotsContainer) {
-        let currentSlide = 0;
-        let slideInterval;
+(function initTestimonialsSlider(){
+  const slidesContainer = document.querySelector('.testimonial-slides');
+  const dotsContainer   = document.querySelector('.testimonial-dots');
+  if (!slidesContainer || !dotsContainer) return;
 
-        slides.forEach((_, index) => {
-            const dot = document.createElement('span');
-            dot.classList.add('dot');
-            if (index === 0) {
-                dot.classList.add('active');
-            }
-            dot.addEventListener('click', () => {
-                goToSlide(index);
-                resetInterval();
-            });
-            dotsContainer.appendChild(dot);
-        });
-        
-        const dots = document.querySelectorAll('.testimonial-dots .dot');
+  const slides = Array.from(slidesContainer.querySelectorAll('.testimonial-slide'));
+  const total  = slides.length;
+  if (!total) return;
 
-        function goToSlide(slideIndex) {
-            slidesContainer.style.transform = `translateX(-${slideIndex * 100}%)`;
-            dots.forEach(dot => dot.classList.remove('active'));
-            dots[slideIndex].classList.add('active');
-            currentSlide = slideIndex;
-        }
+  // Asegurar layout horizontal
+  slidesContainer.style.display = 'flex';
+  slidesContainer.style.transition = 'transform .5s ease';
+  slidesContainer.style.willChange = 'transform';
+  slides.forEach(s => s.style.minWidth = '100%');
 
-        function nextSlide() {
-            let next = currentSlide + 1;
-            if (next >= slides.length) {
-                next = 0;
-            }
-            goToSlide(next);
-        }
+  // Dots dinámicos
+  dotsContainer.innerHTML = '';
+  slides.forEach((_, idx) => {
+    const dot = document.createElement('span');
+    dot.className = 'dot' + (idx === 0 ? ' active' : '');
+    dot.setAttribute('aria-label', `Ir al testimonio ${idx+1}`);
+    dot.addEventListener('click', () => goToSlide(idx, true));
+    dotsContainer.appendChild(dot);
+  });
 
-        function startInterval() {
-           slideInterval = setInterval(nextSlide, 7000);
-        }
+  let current = 0;
+  let timer = null;
 
-        function resetInterval() {
-            clearInterval(slideInterval);
-            startInterval();
-        }
+  function goToSlide(n, userTriggered=false) {
+    current = (n + total) % total;
+    slidesContainer.style.transform = `translateX(-${current * 100}%)`;
+    dotsContainer.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === current));
+    if (userTriggered) resetTimer();
+  }
 
-        startInterval();
-    }
-    
-    // --- LÓGICA PARA LA BARRA DE BÚSQUEDA ---
+  function next() { goToSlide(current + 1); }
+  function prev() { goToSlide(current - 1); }
+
+  function start() { timer = setInterval(next, 5000); }
+  function stop()  { if (timer) clearInterval(timer); }
+  function resetTimer(){ stop(); start(); }
+
+  // swipe táctil básico
+  let startX = 0;
+  slidesContainer.addEventListener('touchstart', (e) => { startX = e.touches[0].clientX; }, { passive: true });
+  slidesContainer.addEventListener('touchend', (e) => {
+    const dx = e.changedTouches[0].clientX - startX;
+    if (Math.abs(dx) > 30) { dx < 0 ? next() : prev(); resetTimer(); }
+  }, { passive: true });
+
+  start();
+})();
+
+// --- LÓGICA PARA LA BARRA DE BÚSQUEDA ---
+
     function setupSearch() {
         const searchInput = document.querySelector('.search-input');
         const shopSection = document.getElementById('shop-section');

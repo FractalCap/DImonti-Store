@@ -1062,7 +1062,7 @@ footer {
 }
 
 .testimonial-dots .dot.active {
-    background-color: var(--color-texto-oscuro);
+    background-color: var(--color-primario);
     transform: scale(1.3);
 }
 
@@ -2115,4 +2115,297 @@ footer {
 }
 .modal-btn.whatsapp:hover {
     background-color: #128C7E;
+}
+
+/* Phones XS — tighten paddings to avoid clipped content */
+@media (max-width: 480px) {
+  .payment-modal-overlay.payment-fullscreen .payment-modal-content {
+    padding: 12px !important;
+  }
+  .payment-modal-overlay.payment-fullscreen .pmc-header {
+    margin: -12px -12px 8px !important;
+    padding: 10px 12px max(10px, env(safe-area-inset-top)) !important;
+  }
+  .payment-modal-overlay.payment-fullscreen .modal-actions {
+    margin: 10px -12px -12px !important;
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom)) !important;
+  }
+}
+
+
+/* ===================================================================
+   STEP 1: "Datos y Resumen" explicit sizes for PC & Mobile
+   Targets the section #view-1 only to avoid side effects on other steps.
+   =================================================================== */
+
+/* Mobile (<=768px): single column full width, comfortable padding */
+@media (max-width: 768px) {
+  .payment-modal-overlay.payment-fullscreen #view-1 .two-col {
+    display: block !important;
+  }
+  .payment-modal-overlay.payment-fullscreen #view-1 .form-col,
+  .payment-modal-overlay.payment-fullscreen #view-1 .summary-col {
+    width: 100% !important;
+  }
+  .payment-modal-overlay.payment-fullscreen #view-1 .form-grid {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+  .payment-modal-overlay.payment-fullscreen #view-1 #shipping-address,
+  .payment-modal-overlay.payment-fullscreen #view-1 #shipping-address-2,
+  .payment-modal-overlay.payment-fullscreen #view-1 #billing-email {
+    grid-column: auto / auto !important;
+  }
+  .payment-modal-overlay.payment-fullscreen #view-1 .summary-col {
+    position: static !important;
+    margin-top: 12px !important;
+  }
+  .payment-modal-overlay.payment-fullscreen .modal-views-container {
+    padding: 12px !important;
+  }
+}
+
+/* Desktop (>=769px): two columns with a fixed summary width and safe container width */
+@media (min-width: 769px) {
+  /* Safe inner container width for step 1 */
+  .payment-modal-overlay #view-1 .two-col {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) 420px !important; /* form + summary width */
+    gap: 24px !important;
+    align-items: start !important;
+  }
+  /* Max width for the scrolling views area */
+  .payment-modal-overlay .modal-views-container {
+    max-width: 1160px !important; /* pairs well with 420px summary */
+    margin: 0 auto !important;
+  }
+  .payment-modal-overlay #view-1 .summary-col {
+    position: sticky !important;
+    top: 88px !important; /* keeps clear of sticky header */
+    align-self: start !important;
+    height: max-content !important;
+  }
+}
+
+/* Defensive: prevent text overflow in preview/summary lines */
+.payment-modal-overlay #view-1 .billing-preview,
+.payment-modal-overlay #view-1 #cart-lines .item,
+.payment-modal-overlay #view-1 .summary-card {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+
+/* === PAYMENT MODAL IMAGE LAYOUT (PC & Mobile) === */
+.payment-modal-overlay .payment-label-flex {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  vertical-align: middle !important;
+}
+.payment-modal-overlay .payment-label-flex img {
+  height: 24px !important;
+  width: auto !important;
+  max-width: 120px !important;
+  object-fit: contain !important;
+  display: inline-block !important;
+}
+.payment-modal-overlay .payment-icon-wrapper img {
+  height: 24px !important;
+  width: auto !important;
+  max-width: 120px !important;
+  object-fit: contain !important;
+  display: inline-block !important;
+}
+/* Any image in modal content should never overflow */
+.payment-modal-overlay .payment-modal-content img {
+  max-width: 100% !important;
+  height: auto !important;
+  object-fit: contain !important;
+}
+
+
+/* === MOBILE SCROLLING FIX === */
+@media (max-width: 768px) {
+  .payment-modal-overlay.payment-fullscreen {
+    touch-action: pan-y !important;
+  }
+  .payment-modal-overlay.payment-fullscreen .modal-views-container {
+    -webkit-overflow-scrolling: touch !important;
+    overflow-y: auto !important;
+    touch-action: pan-y !important;
+  }
+  .payment-modal-overlay.payment-fullscreen .payment-modal-content {
+    height: 100dvh !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+}
+
+/* === REVERT ICON IMAGE SIZING ON DESKTOP === */
+@media (min-width: 1025px) {
+  .payment-modal-overlay .payment-label-flex img,
+  .payment-modal-overlay .payment-icon-wrapper img {
+    height: auto !important;
+    max-width: 100% !important;
+    object-fit: contain !important;
+  }
+}
+
+
+/* ===================================================================
+   PC FULLSCREEN for STEP 1 ("Datos y Resumen")
+   Makes the modal occupy the full viewport and keeps UI stable.
+   =================================================================== */
+@media (min-width: 1025px) {
+  .payment-modal-overlay.payment-fullscreen {
+    align-items: stretch !important;
+    padding: 0 !important;
+  }
+  .payment-modal-overlay.payment-fullscreen .payment-modal-content {
+    width: 100% !important;
+    max-width: none !important;
+    height: 100dvh !important;
+    border-radius: 0 !important;
+    padding: 24px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    background: #fff !important;
+  }
+  .payment-modal-overlay.payment-fullscreen .pmc-header {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 3 !important;
+    margin: -24px -24px 12px !important;
+    padding: 14px 24px !important;
+    background: #fff !important;
+    box-shadow: 0 1px 0 rgba(0,0,0,.08);
+  }
+  .payment-modal-overlay.payment-fullscreen .modal-views-container {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+  }
+  /* Two columns for step 1 */
+  .payment-modal-overlay.payment-fullscreen #view-1 .two-col {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) 420px !important;
+    gap: 24px !important;
+    align-items: start !important;
+  }
+  .payment-modal-overlay.payment-fullscreen #view-1 .summary-col {
+    position: sticky !important;
+    top: 88px !important;
+    align-self: start !important;
+    height: max-content !important;
+  }
+  .payment-modal-overlay.payment-fullscreen .modal-actions {
+    position: sticky !important;
+    bottom: 0 !important;
+    z-index: 2 !important;
+    margin: 12px -24px -24px !important;
+    padding: 12px 24px !important;
+    background: #fff !important;
+    box-shadow: 0 -1px 0 rgba(0,0,0,.08), 0 -6px 12px rgba(0,0,0,.05);
+  }
+}
+
+/* ==== Testimonios con IMÁGENES (reemplaza texto) ==== */
+.testimonial-container::before { content: none; } /* ocultar comilla gigante */
+
+.testimonial-slide {
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.testimonial-image {
+  width: 100%;
+  max-width: 650px;
+  height: auto;
+  border-radius: 14px;
+  border: 1px solid rgba(0,0,0,.08);
+  box-shadow: 0 8px 30px rgba(0,0,0,.08);
+  image-rendering: auto;
+  -webkit-user-drag: none;
+}
+
+@media (max-width: 640px) {
+  .testimonial-image { max-width: 95%; border-radius: 12px; }
+}
+/* ==== Realce visual de testimonios (marco con colores de la marca) ==== */
+.testimonial-slider-container {
+  /* asegura altura mínima y evita saltos al cambiar de imagen */
+  min-height: 420px;
+}
+
+.testimonial-slide {
+  position: relative;
+  overflow: hidden;
+  padding: 18px; /* espacio para el marco */
+  border-radius: 18px;
+  /* Marco dorado con doble background (relleno + borde) */
+  background:
+    linear-gradient(#ffffff, #ffffff) padding-box,
+    linear-gradient(135deg, rgba(212,175,55,0.95), rgba(212,175,55,0.4), rgba(0,0,0,0.15)) border-box;
+  border: 2px solid transparent;
+  box-shadow: 0 10px 30px rgba(0,0,0,.10);
+}
+
+/* brillo sutil dorado en la esquina superior para dar profundidad */
+.testimonial-slide::before {
+  content: "";
+  position: absolute;
+  top: -25%;
+  left: -15%;
+  width: 60%;
+  height: 70%;
+  background: radial-gradient(60% 60% at 50% 50%, rgba(212,175,55,.18), transparent 70%);
+  transform: rotate(12deg);
+  pointer-events: none;
+}
+
+/* superficie interna suave para el área de la imagen */
+.testimonial-slide::after {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #fff, #fafafa);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.6), inset 0 -1px 0 rgba(0,0,0,.06);
+  z-index: 0;
+}
+
+.testimonial-image {
+  position: relative;
+  z-index: 1; /* por encima de ::after */
+  display: block;
+  width: 100%;
+  max-width: 700px;
+  height: auto;
+  border-radius: 12px;
+  border: 1px solid var(--color-borde-suave);
+  box-shadow: 0 8px 24px rgba(0,0,0,.08);
+  -webkit-user-drag: none;
+  image-rendering: auto;
+}
+
+/* Dots con mejor contraste y foco de marca */
+.testimonial-dots .dot {
+  border: 1px solid rgba(0,0,0,.1);
+  box-shadow: 0 1px 2px rgba(0,0,0,.06);
+}
+.testimonial-dots .dot.active {
+  transform: scale(1.25);
+  box-shadow: 0 0 0 4px rgba(212,175,55,.18);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .testimonial-slider-container { min-height: 340px; }
+  .testimonial-slide { padding: 14px; border-radius: 16px; }
+  .testimonial-image { max-width: 95%; border-radius: 10px; }
 }

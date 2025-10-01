@@ -55,26 +55,23 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // --- Función para renderizar el contenido del carrito ---
+    // --- Render del carrito ---
     function renderCart() {
         const cartBody = sideCart.querySelector('.side-cart-body');
         const cartFooter = sideCart.querySelector('.side-cart-footer');
         let cart = JSON.parse(localStorage.getItem('dimontiCart')) || [];
 
-        // Vaciar contenido actual
         cartBody.innerHTML = '';
         cartFooter.innerHTML = '';
 
         if (cart.length === 0) {
             cartBody.innerHTML = '<p class="empty-cart-message">Tu carrito está vacío.</p>';
-            cartFooter.innerHTML = '';
             return;
         }
 
         let subtotal = 0;
-
         cart.forEach(item => {
-            const itemHTML = `
+            cartBody.innerHTML += `
                 <div class="cart-item" data-item-id="${item.id}">
                     <div class="cart-item-image">
                         <img src="${item.image}" alt="${item.name}">
@@ -94,33 +91,25 @@ document.addEventListener('DOMContentLoaded', function() {
                             <i class="fas fa-trash-alt"></i>
                         </button>
                     </div>
-                </div>
-            `;
-            cartBody.innerHTML += itemHTML;
+                </div>`;
             subtotal += item.price * item.quantity;
         });
 
-        const footerHTML = `
+        cartFooter.innerHTML = `
             <div class="summary-row">
                 <span>Subtotal:</span>
                 <span id="cart-subtotal">${formatCurrency(subtotal)}</span>
             </div>
-            <button class="checkout-btn">Finalizar Pedido</button>
-        `;
-        cartFooter.innerHTML = footerHTML;
+            <button class="checkout-btn">Finalizar Pedido</button>`;
     }
     
     // --- Actualizar cantidad / eliminar ---
     function updateCartItem(itemId, newQuantity) {
         let cart = JSON.parse(localStorage.getItem('dimontiCart')) || [];
-        const itemIndex = cart.findIndex(item => item.id === itemId);
-
-        if (itemIndex > -1) {
-            if (newQuantity <= 0) {
-                cart.splice(itemIndex, 1);
-            } else {
-                cart[itemIndex].quantity = newQuantity;
-            }
+        const idx = cart.findIndex(item => item.id === itemId);
+        if (idx > -1) {
+            if (newQuantity <= 0) cart.splice(idx, 1);
+            else cart[idx].quantity = newQuantity;
             localStorage.setItem('dimontiCart', JSON.stringify(cart));
             renderCart();
             window.updateCartIcon();
@@ -130,30 +119,22 @@ document.addEventListener('DOMContentLoaded', function() {
     // Delegación de eventos dentro del carrito
     sideCart.addEventListener('click', (event) => {
         const target = event.target;
-        
-        const buttonTarget = target.closest('button');
-        if (buttonTarget) {
-            const itemId = buttonTarget.dataset.id;
-            if (itemId) {
-                const currentItem = (JSON.parse(localStorage.getItem('dimontiCart')) || []).find(item => item.id === itemId);
-                if (!currentItem) return;
+        const btn = target.closest('button');
 
-                if (buttonTarget.classList.contains('increase-qty')) {
-                    updateCartItem(itemId, currentItem.quantity + 1);
-                } else if (buttonTarget.classList.contains('decrease-qty')) {
-                    updateCartItem(itemId, currentItem.quantity - 1);
-                } else if (buttonTarget.classList.contains('remove-item-btn')) {
-                    updateCartItem(itemId, 0);
-                }
-            }
+        if (btn && btn.dataset.id) {
+            const id = btn.dataset.id;
+            const cart = JSON.parse(localStorage.getItem('dimontiCart')) || [];
+            const item = cart.find(x => x.id === id);
+            if (!item) return;
+
+            if (btn.classList.contains('increase-qty')) updateCartItem(id, item.quantity + 1);
+            else if (btn.classList.contains('decrease-qty')) updateCartItem(id, item.quantity - 1);
+            else if (btn.classList.contains('remove-item-btn')) updateCartItem(id, 0);
         }
         
         if (target.classList.contains('checkout-btn')) {
-            let cart = JSON.parse(localStorage.getItem('dimontiCart')) || [];
-            if (cart.length === 0) {
-                alert('Tu carrito está vacío.');
-                return;
-            }
+            const cart = JSON.parse(localStorage.getItem('dimontiCart')) || [];
+            if (!cart.length) { alert('Tu carrito está vacío.'); return; }
             createPaymentModal();
         }
     });
@@ -162,20 +143,15 @@ document.addEventListener('DOMContentLoaded', function() {
     window.updateCartIcon = function() {
         const cart = JSON.parse(localStorage.getItem('dimontiCart')) || [];
         const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
-        
-        document.querySelectorAll('.cart-count').forEach(el => {
-            el.textContent = totalItems;
-        });
+        document.querySelectorAll('.cart-count').forEach(el => el.textContent = totalItems);
     };
-
-    // Al cargar la página
     window.updateCartIcon();
 
     // ===================================================================
-    // === MODAL DE PAGO (3 PASOS) =======================================
+    // === CHECKOUT DE PANTALLA COMPLETA (3 PASOS) =======================
     // ===================================================================
 
-    // Utilidades para WhatsApp + Ticket
+    // Utilidades
     function waLink(phoneE164, text) {
         return `https://wa.me/${encodeURIComponent(phoneE164)}?text=${encodeURIComponent(text)}`;
     }
@@ -185,17 +161,17 @@ document.addEventListener('DOMContentLoaded', function() {
     function collectBillingData(root = document) {
         const get = sel => (root.querySelector(sel)?.value || '').trim();
         return {
-            nombre:     get('#billing_first_name') || get('#recipient-name') || get('[name="billing_first_name"]'),
-            apellidos:  get('#billing_last_name')  || get('[name="billing_last_name"]'),
-            pais:       get('#billing_country')    || get('[name="billing_country"]') || 'Colombia',
-            direccion:  get('#billing_address_1')  || get('#shipping-address') || get('[name="billing_address_1"]'),
-            direccion2: get('#billing_address_2')  || get('[name="billing_address_2"]'),
-            ciudad:     get('#billing_city')       || get('[name="billing_city"]'),
-            departamento:get('#billing_state')     || get('[name="billing_state"]'),
-            postal:     get('#billing_postcode')   || get('[name="billing_postcode"]'),
-            telefono:   get('#billing_phone')      || get('[name="billing_phone"]'),
-            email:      get('#billing_email')      || get('[name="billing_email"]'),
-            notas:      get('#order_comments')     || get('[name="order_comments"]')
+            nombre:     get('#recipient-name')      || get('#billing_first_name') || get('[name="billing_first_name"]'),
+            apellidos:  get('#recipient-lastname')  || get('#billing_last_name')  || get('[name="billing_last_name"]'),
+            pais:       get('#billing-country')     || get('#billing_country')    || get('[name="billing_country"]') || 'Colombia',
+            direccion:  get('#shipping-address')    || get('#billing_address_1')  || get('[name="billing_address_1"]'),
+            direccion2: get('#shipping-address-2')  || get('#billing_address_2')  || get('[name="billing_address_2"]'),
+            ciudad:     get('#billing-city')        || get('#billing_city')       || get('[name="billing_city"]'),
+            departamento:get('#billing-state')      || get('#billing_state')      || get('[name="billing_state"]'),
+            postal:     get('#billing-postcode')    || get('#billing_postcode')   || get('[name="billing_postcode"]'),
+            telefono:   get('#billing-phone')       || get('#billing_phone')      || get('[name="billing_phone"]'),
+            email:      get('#billing-email')       || get('#billing_email')      || get('[name="billing_email"]'),
+            notas:      get('#order-notes')         || get('#order_comments')     || get('[name="order_comments"]')
         };
     }
     function buildTicket({orderId, cart, totales, metodo, facturacion}) {
@@ -232,26 +208,32 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function createPaymentModal() {
+        // Quitar cualquier instancia previa
         document.querySelector('.payment-modal-overlay')?.remove();
         
+        // Overlay de pantalla completa
         const modalOverlay = document.createElement('div');
-        modalOverlay.className = 'payment-modal-overlay';
+        modalOverlay.className = 'payment-modal-overlay payment-fullscreen';
+        modalOverlay.setAttribute('role', 'dialog');
+        modalOverlay.setAttribute('aria-modal', 'true');
+
         modalOverlay.innerHTML = `
             <div class="payment-modal-content">
-                <button class="close-btn">&times;</button>
-                
-                <div class="modal-progress-bar">
-                    <div class="progress-header">
-                        <h4 id="current-step-title">Datos y Resumen</h4>
-                    </div>
-                    <div class="progress-line-container">
-                        <div class="progress-line-active"></div>
+                <div class="pmc-header">
+                    <button class="close-btn" aria-label="Cerrar">&times;</button>
+                    <div class="modal-progress-bar">
+                        <div class="progress-header">
+                            <h4 id="current-step-title">Datos y Resumen</h4>
+                        </div>
+                        <div class="progress-line-container">
+                            <div class="progress-line-active"></div>
+                        </div>
                     </div>
                 </div>
-                <div class="modal-views-container">
 
-                    <!-- PASO 1: Formulario + Resumen en Vivo (dos columnas) -->
-                    <div class="modal-view active" id="view-1">
+                <div class="modal-views-container">
+                    <!-- PASO 1: Formulario + Resumen (layout responsivo) -->
+                    <section class="modal-view active" id="view-1">
                       <div class="two-col">
                         <div class="col form-col">
                           <div class="form-grid">
@@ -274,27 +256,25 @@ document.addEventListener('DOMContentLoaded', function() {
                           </div>
                         </div>
 
-                        <div class="col summary-col">
+                        <aside class="col summary-col">
                           <div class="summary-card">
                             <h5 class="summary-title">Tu pedido</h5>
-                            <div id="live-billing-preview" class="billing-preview">
-                              <!-- Se llena en vivo con los datos -->
-                            </div>
+                            <div id="live-billing-preview" class="billing-preview"></div>
                             <div class="summary-divider"></div>
                             <div id="cart-lines"></div>
                             <div class="summary-totals">
-                              <div class="row"><span>Subtotal</span><span id="summary-subtotal">—</span></div>
-                              <div class="row"><span>Envío</span><span id="summary-shipping">—</span></div>
+                              <div class="row br"><span>Subtotal</span><span id="summary-subtotal">—</span></div>
+                              <div class="row br"><span>Envío</span><span id="summary-shipping">—</span></div>
                               <div class="row total"><span>Total</span><span id="summary-total">—</span></div>
                             </div>
                           </div>
-                        </div>
+                        </aside>
                       </div>
-                    </div>
+                    </section>
                     
                     <!-- PASO 2: Método de pago + instrucciones -->
-                    <div class="modal-view" id="view-2">
-                        <div class="payment-options" style="grid-template-columns: 1fr;">
+                    <section class="modal-view" id="view-2">
+                        <div class="payment-options">
                             <div class="payment-option">
                                 <input type="radio" id="pay-addi" name="payment_method" value="ADDI">
                                 <label for="pay-addi" class="payment-label-flex">
@@ -302,7 +282,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     <span>Paga a cuotas con ADDI</span>
                                 </label>
                             </div>
-                             <div class="payment-option">
+                            <div class="payment-option">
                                 <input type="radio" id="pay-nequi-davi" name="payment_method" value="Nequi / Daviplata">
                                 <label for="pay-nequi-davi" class="payment-label-flex">
                                     <div class="payment-icon-wrapper">
@@ -335,70 +315,151 @@ document.addEventListener('DOMContentLoaded', function() {
                             </div>
                         </div>
 
-                        <div id="payment-instructions-content" style="margin-top: 15px;"></div>
+                        <div id="payment-instructions-content" class="instructions"></div>
 
                         <div class="modal-actions">
                           <button id="to-step-3" class="modal-btn primary" disabled>Ir a WhatsApp</button>
                         </div>
-                    </div>
+                    </section>
 
-                    <!-- PASO 3: Vista de resumen final (oculta el textarea; botón hace copiar+abrir) -->
-                    <div class="modal-view" id="view-3">
-                        <p style="font-size: 0.9rem; color: #555; margin-bottom: 10px; text-align: center;">Al continuar se copiará tu pedido y se abrirá WhatsApp con el ticket listo para enviar.</p>
+                    <!-- PASO 3: Copiar + abrir WhatsApp -->
+                    <section class="modal-view" id="view-3">
+                        <p class="wa-note">Al continuar se copiará tu pedido y se abrirá WhatsApp con el ticket listo para enviar.</p>
                         <textarea id="whatsapp-message-textarea" readonly style="display:none;"></textarea>
                         <div class="modal-actions">
                           <button id="copy-open-wa" class="modal-btn primary">Copiar y abrir WhatsApp</button>
                         </div>
-                    </div>
-
+                    </section>
                 </div>
             </div>`;
         document.body.appendChild(modalOverlay);
 
-        // --- Estilos internos del modal (solo para esta vista) ---
+        // --- Estilos internos (pantalla completa + responsive, líneas reforzadas) ---
         const styles = document.createElement('style');
         styles.innerHTML = `
-            .payment-modal-content { max-width: 980px; padding: 2rem; }
-            .two-col { display: grid; grid-template-columns: 1.2fr 1fr; gap: 20px; }
-            @media (max-width: 900px){ .two-col { grid-template-columns: 1fr; } }
-
-            .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-            .form-grid input, .form-grid select, .form-grid textarea {
-                width: 100%; padding: 12px 14px; border: 1px solid #ccc; border-radius: 6px; font-size: .95rem;
+            .payment-fullscreen{
+                position: fixed; inset: 0; background:#fff; z-index: 9999;
+                display:flex; flex-direction:column; overflow:auto;
             }
-            .form-grid textarea { grid-column: span 2; min-height: 80px; }
-            #recipient-name, #recipient-lastname, #billing-country, #billing-city, #billing-state { }
-            #shipping-address, #shipping-address-2, #billing-email { grid-column: span 2; }
+            .payment-modal-content{
+                width: 100%; min-height: 100%;
+                display:flex; flex-direction:column;
+            }
+            .pmc-header{ position: sticky; top:0; background:#fff; z-index:1; padding: 14px 16px 12px; border-bottom:1px solid rgba(0,0,0,.12); }
+            .close-btn{
+                position: absolute; right: 16px; top: 10px; font-size: 28px; line-height: 1;
+                background: transparent; border: 0; cursor: pointer; color:#333;
+            }
 
-            .summary-card { border: 1px solid #e5e5e5; border-radius: 8px; padding: 16px; background: #fff; }
-            .summary-title { font-size: 1.1rem; margin: 0 0 10px; }
-            .billing-preview { font-size: .9rem; color: #333; line-height: 1.4; }
-            .billing-preview .line { display:flex; justify-content: space-between; gap:10px; }
-            .summary-divider { height: 1px; background: #eee; margin: 12px 0; }
-            #cart-lines .item { display:flex; justify-content: space-between; gap: 10px; font-size: .9rem; margin: 6px 0; }
-            #cart-lines .meta { color: #666; font-size: .85rem; }
-            .summary-totals { margin-top: 10px; }
-            .summary-totals .row { display:flex; justify-content: space-between; padding: 6px 0; }
-            .summary-totals .row.total { border-top: 1px solid #eee; font-weight: 700; }
+            /* Contenedor central: centrado y con ancho máximo en escritorio */
+            .modal-views-container{ width:100%; max-width: 1200px; margin: 0 auto; padding: 18px; flex:1; }
 
             /* Progreso */
-            .modal-progress-bar { margin-bottom: 1rem; position: relative; }
-            .progress-header { text-align: center; margin-bottom: .5rem; position: relative; height: 24px; }
-            #current-step-title { font-size: 1rem; font-weight: 600; color: #333; text-transform: uppercase; letter-spacing: 1px; position: absolute; width: 100%; left: 0; top: 0; opacity: 1; transition: opacity .2s, transform .2s; }
-            #current-step-title.exiting { opacity: 0; transform: translateY(-10px); }
-            .progress-line-container { width: 100%; height: 4px; background-color: #e5e5e5; border-radius: 4px; overflow: hidden; }
-            .progress-line-active { height: 100%; background-color: #1a1a1a; border-radius: 4px; width: 0%; transition: width .5s cubic-bezier(.65,0,.35,1); }
+            .progress-header{ text-align:center; margin-bottom:.6rem; position:relative; height:24px; }
+            #current-step-title{ font-size:1rem; font-weight:600; color:#333; text-transform:uppercase; letter-spacing:1px; }
+            .progress-line-container{ width:100%; height:4px; background:rgba(0,0,0,.08); border-radius:4px; overflow:hidden; }
+            .progress-line-active{ height:100%; background:#1a1a1a; border-radius:4px; width:0%; transition: width .4s ease; }
 
-            /* Labels de métodos */
-            .payment-label-flex { display:flex; align-items:center; gap: 15px; padding: .9rem; }
-            .payment-label-flex img { height: 26px; max-width: 110px; object-fit: contain; }
-            .payment-icon-wrapper { display:flex; align-items:center; gap: 10px; }
-            .payment-icon-wrapper img { height: 23px; }
+            /* Vistas */
+            .modal-view{ display:none; }
+            .modal-view.active{ display:block; }
+            .modal-actions{ display:flex; justify-content:flex-end; gap:10px; margin-top:14px; }
+            .modal-btn{ appearance:none; border:0; border-radius:10px; padding:12px 16px; cursor:pointer; font-weight:700; }
+            .modal-btn.primary{ background:#111; color:#fff; }
+            .modal-btn.primary:disabled{ opacity:.4; cursor:not-allowed; }
 
-            /* Instrucciones */
-            .payment-details-box { border: 1px solid #e5e5e5; border-radius: 8px; padding: 16px; margin-top: 10px; }
-            .payment-info-line { display:flex; align-items:center; justify-content:center; gap:10px; background:#f9f9f9; padding:10px; border-radius:5px; margin:10px 0; }
-            .modal-btn-copy { background:#555; color:#fff; border:0; padding:6px 10px; border-radius:5px; cursor:pointer; }
+            /* Paso 1 layout - PC / Tablet / Mobile */
+            .two-col{
+                display:grid;
+                grid-template-columns: minmax(0,1fr) 400px; /* PC por defecto */
+                gap: 26px;
+                align-items: start;
+            }
+            /* tablet landscape/laptop angosto */
+            @media (min-width: 1025px) and (max-width: 1199px){
+                .two-col{ grid-template-columns: minmax(0,1fr) 360px; gap:22px; }
+            }
+            /* tablet y móvil */
+            @media (max-width: 1024px){
+                .two-col{ grid-template-columns: 1fr; gap:18px; }
+            }
+
+            .form-grid{ display:grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+            .form-grid input, .form-grid select, .form-grid textarea{
+                width:100%; padding:12px 14px; border:1px solid rgba(0,0,0,.18); border-radius:8px; font-size:.95rem;
+                background:#fff;
+            }
+            .form-grid textarea{ grid-column: span 2; min-height: 96px; }
+            #shipping-address, #shipping-address-2, #billing-email{ grid-column: span 2; }
+            @media (max-width: 640px){
+                .form-grid{ grid-template-columns: 1fr; gap: 10px; }
+                #shipping-address, #shipping-address-2, #billing-email{ grid-column: span 1; }
+                .modal-actions{ justify-content:stretch; }
+                .modal-btn{ width:100%; padding:14px 16px; }
+            }
+
+            /* RESUMEN: líneas reforzadas y legibles */
+            .summary-col{ position: sticky; top: 92px; height: fit-content; align-self: start; }
+            .summary-card{
+                border:1px solid rgba(0,0,0,.12); border-radius:12px; padding:16px; background:#fff;
+                box-shadow: 0 1px 2px rgba(0,0,0,.03);
+            }
+            .summary-title{ font-size:1.1rem; margin:0 0 10px; }
+            .billing-preview{
+                font-size:.92rem; color:#333; line-height:1.45; display:grid; gap:8px;
+                border:1px solid rgba(0,0,0,.08); border-radius:8px; padding:10px 12px; background:#fafafa;
+            }
+            .billing-preview .line{ display:flex; justify-content:space-between; gap:10px; border-bottom:1px solid rgba(0,0,0,.08); padding:4px 0; }
+            .billing-preview .line:last-child{ border-bottom:0; }
+
+            .summary-divider{ height:1px; background:linear-gradient(to right, rgba(0,0,0,.10), rgba(0,0,0,.02)); margin:12px 0; }
+
+            #cart-lines .item{
+                display:flex; justify-content:space-between; gap:10px; font-size:.92rem; padding:8px 0;
+                border-bottom:1px solid rgba(0,0,0,.10);
+            }
+            #cart-lines .item:last-child{ border-bottom:0; }
+            #cart-lines .meta{ color:#555; font-size:.85rem; }
+
+            .summary-totals{ margin-top: 10px; border-top:2px solid rgba(0,0,0,.12); }
+            .summary-totals .row{
+                display:flex; justify-content:space-between; padding:10px 0;
+                border-bottom:1px dashed rgba(0,0,0,.14);
+            }
+            .summary-totals .row.br{ border-bottom:1px dashed rgba(0,0,0,.14); }
+            .summary-totals .row.total{
+                border-bottom:0; font-weight:800; font-size:1.02rem;
+            }
+
+            /* Paso 2 */
+            .payment-options{ display:grid; grid-template-columns: 1fr; gap:10px; }
+            .payment-option{
+                border:1px solid rgba(0,0,0,.12); border-radius:10px; padding:8px 12px;
+                display:flex; align-items:center; gap:10px; background:#fff;
+            }
+            .payment-label-flex{ display:flex; align-items:center; gap:12px; padding:.4rem 0; width:100%; }
+            .payment-label-flex img{ height:26px; max-width:110px; object-fit:contain; }
+            .payment-icon-wrapper{ display:flex; align-items:center; gap:10px; }
+            .payment-icon-wrapper img{ height:22px; }
+            .instructions{ margin-top:12px; }
+            .payment-details-box{
+                border:1px solid rgba(0,0,0,.12); border-radius:10px; padding:14px; background:#fff;
+            }
+            .payment-info-line{
+                display:flex; align-items:center; justify-content:center; gap:10px;
+                background:#f5f7f9; padding:10px; border-radius:8px; margin:10px 0;
+                border:1px solid rgba(0,0,0,.08);
+            }
+            .modal-btn-copy{ background:#555; color:#fff; border:0; padding:6px 10px; border-radius:6px; cursor:pointer; }
+
+            /* Paso 3 */
+            .wa-note{ font-size:.95rem; color:#555; text-align:center; margin:10px 0 14px; }
+
+            /* Ajustes extra para pantallas retina: aseguran que las líneas se noten */
+            @supports (-webkit-touch-callout: none) {
+              .summary-divider { background: rgba(0,0,0,.12); }
+              .billing-preview .line, #cart-lines .item { border-color: rgba(0,0,0,.16); }
+            }
         `;
         modalOverlay.querySelector('.payment-modal-content').appendChild(styles);
 
@@ -413,24 +474,19 @@ document.addEventListener('DOMContentLoaded', function() {
         const goToView = (n) => {
             const pct = ((n - 1) / (stepTitles.length - 1)) * 100;
             progressLine.style.width = `${pct}%`;
-            currentStepTitleEl.classList.add('exiting');
-            setTimeout(() => {
-                currentStepTitleEl.textContent = stepTitles[n - 1] || stepTitles[stepTitles.length - 1];
-                currentStepTitleEl.classList.remove('exiting');
-            }, 180);
+            currentStepTitleEl.textContent = stepTitles[n - 1] || stepTitles[stepTitles.length - 1];
             views.forEach(v => v.classList.remove('active'));
             modalOverlay.querySelector(`#view-${n}`)?.classList.add('active');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         };
 
-        // ---------- Rellenar resumen de carrito ----------
+        // ---------- Resumen de carrito ----------
         function renderCartSummaryPanel() {
             const cart = JSON.parse(localStorage.getItem('dimontiCart')) || [];
             const linesEl = modalOverlay.querySelector('#cart-lines');
             const subEl = modalOverlay.querySelector('#summary-subtotal');
             const shipEl = modalOverlay.querySelector('#summary-shipping');
             const totEl = modalOverlay.querySelector('#summary-total');
-
-            if (!linesEl) return;
 
             linesEl.innerHTML = '';
             let subtotal = 0;
@@ -447,27 +503,24 @@ document.addEventListener('DOMContentLoaded', function() {
             });
 
             subEl.textContent = formatCurrency(subtotal);
-            // Si manejas envío fijo, cámbialo aquí. Lo dejo como $13.000 si quieres replicar tu screenshot:
-            const envio = 13000;
+            const envio = 13000; // ajusta si usas otro valor o lo tomas del DOM
             shipEl.textContent = `$${Number(envio).toLocaleString('es-CO')}`;
             totEl.textContent = formatCurrency(subtotal + envio);
         }
 
-        // ---------- Vista previa de facturación en vivo ----------
+        // ---------- Vista previa de facturación ----------
         function updateBillingPreview() {
             const pv = modalOverlay.querySelector('#live-billing-preview');
-            if (!pv) return;
-            const data = collectBillingData(modalOverlay);
+            const d = collectBillingData(modalOverlay);
             pv.innerHTML = `
-              <div class="line"><strong>Nombre:</strong><span>${(data.nombre || '')} ${(data.apellidos || '')}</span></div>
-              <div class="line"><strong>País:</strong><span>${data.pais || ''}</span></div>
-              <div class="line"><strong>Dirección:</strong><span>${data.direccion || ''} ${data.direccion2 ? ' - ' + data.direccion2 : ''}</span></div>
-              <div class="line"><strong>Ciudad/Depto:</strong><span>${data.ciudad || ''} ${data.departamento ? ' / ' + data.departamento : ''}</span></div>
-              <div class="line"><strong>Código Postal:</strong><span>${data.postal || ''}</span></div>
-              <div class="line"><strong>Teléfono:</strong><span>${data.telefono || ''}</span></div>
-              <div class="line"><strong>Email:</strong><span>${data.email || ''}</span></div>
-              ${data.notas ? `<div class="line"><strong>Notas:</strong><span>${data.notas}</span></div>` : ''}
-            `;
+              <div class="line"><strong>Nombre:</strong><span>${(d.nombre||'')} ${(d.apellidos||'')}</span></div>
+              <div class="line"><strong>País:</strong><span>${d.pais||''}</span></div>
+              <div class="line"><strong>Dirección:</strong><span>${d.direccion||''}${d.direccion2?(' - '+d.direccion2):''}</span></div>
+              <div class="line"><strong>Ciudad/Depto:</strong><span>${d.ciudad||''}${d.departamento?(' / '+d.departamento):''}</span></div>
+              <div class="line"><strong>Código Postal:</strong><span>${d.postal||''}</span></div>
+              <div class="line"><strong>Teléfono:</strong><span>${d.telefono||''}</span></div>
+              <div class="line"><strong>Email:</strong><span>${d.email||''}</span></div>
+              ${d.notas ? `<div class="line"><strong>Notas:</strong><span>${d.notas}</span></div>` : ''}`;
         }
 
         // Inicializar paneles
@@ -477,7 +530,6 @@ document.addEventListener('DOMContentLoaded', function() {
         // ---------- Validación Paso 1 ----------
         const requiredIds = ['#recipient-name','#recipient-lastname','#shipping-address','#billing-city','#billing-state','#billing-email'];
         const btnToStep2 = modalOverlay.querySelector('#to-step-2');
-
         function validateStep1() {
             const ok = requiredIds.every(sel => (modalOverlay.querySelector(sel)?.value || '').trim().length > 1);
             btnToStep2.disabled = !ok;
@@ -487,10 +539,7 @@ document.addEventListener('DOMContentLoaded', function() {
             el.addEventListener('change', () => { updateBillingPreview(); validateStep1(); });
         });
         validateStep1();
-
-        btnToStep2.addEventListener('click', () => {
-            goToView(2);
-        });
+        btnToStep2.addEventListener('click', () => goToView(2));
 
         // ---------- Paso 2: Método de pago + instrucciones ----------
         let selectedPaymentMethod = '';
@@ -534,13 +583,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const copy = (sel, btnSel) => {
                 const btn = modalOverlay.querySelector(btnSel);
-                if (btn) btn.addEventListener('click', (e) => {
+                if (!btn) return;
+                btn.addEventListener('click', (e) => {
                     const text = modalOverlay.querySelector(sel)?.textContent || '';
                     navigator.clipboard.writeText(text).then(()=>{
-                        const t = e.target;
-                        const o = t.textContent;
+                        const t = e.target, o = t.textContent;
                         t.textContent = 'Copiado';
-                        setTimeout(()=>t.textContent=o,1200);
+                        setTimeout(()=> t.textContent = o, 1200);
                     });
                 });
             };
@@ -548,19 +597,16 @@ document.addEventListener('DOMContentLoaded', function() {
             copy('#bancolombia-number', '#copy-bancolombia-btn');
         }
 
-        modalOverlay.querySelectorAll('input[name="payment_method"]').forEach(radio => {
-            radio.addEventListener('change', (e) => {
+        modalOverlay.querySelectorAll('input[name="payment_method"]').forEach(r => {
+            r.addEventListener('change', (e) => {
                 selectedPaymentMethod = e.target.value;
                 btnToStep3.disabled = !selectedPaymentMethod;
                 renderInstructions(selectedPaymentMethod);
             });
         });
+        btnToStep3.addEventListener('click', () => goToView(3));
 
-        btnToStep3.addEventListener('click', () => {
-            goToView(3);
-        });
-
-        // ---------- Paso 3: Copiar + WhatsApp ----------
+        // ---------- Paso 3: Copiar + abrir WhatsApp ----------
         function buildCurrentTicket() {
             const cart = JSON.parse(localStorage.getItem('dimontiCart')) || [];
             const subtotalText = modalOverlay.querySelector('#summary-subtotal')?.textContent || '';
@@ -582,30 +628,24 @@ document.addEventListener('DOMContentLoaded', function() {
             const ta = modalOverlay.querySelector('#whatsapp-message-textarea');
             if (ta) ta.value = ticketText;
 
-            // Copiar
             navigator.clipboard.writeText(ticketText).then(()=> {
-                // Abrir WhatsApp
                 const url = waLink(DIMONTI_WA, ticketText);
                 window.open(url, '_blank', 'noopener');
 
-                // Limpiar carrito y cerrar
                 localStorage.setItem('dimontiCart', JSON.stringify([]));
                 renderCart();
                 window.updateCartIcon();
 
                 modalOverlay.classList.remove('active');
-                setTimeout(() => modalOverlay.remove(), 300);
+                setTimeout(() => modalOverlay.remove(), 200);
             });
         });
 
-        // ---------- Navegación y cierre ----------
+        // ---------- Cierre ----------
         const closeModal = () => {
             modalOverlay.classList.remove('active');
-            setTimeout(() => modalOverlay.remove(), 300);
+            setTimeout(() => modalOverlay.remove(), 200);
         };
         modalOverlay.querySelector('.close-btn').addEventListener('click', closeModal);
-        modalOverlay.addEventListener('click', (e) => {
-            if (e.target === modalOverlay) closeModal();
-        });
     }
 });
