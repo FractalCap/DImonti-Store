@@ -1914,10 +1914,6 @@ footer {
     overflow: hidden;
 }
 
-.payment-modal-overlay.active .payment-modal-content {
-    transform: scale(1) translateY(0);
-}
-
 .payment-modal-content .close-btn {
     position: absolute;
     top: 10px;
@@ -2003,27 +1999,39 @@ footer {
     color: #333;
 }
 
+/* ===== MÉTODOS DE PAGO: GRID y LABEL/ICONOS (actualizado y responsive) ===== */
 .payment-options {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr; /* 1 columna en móvil */
     gap: 1rem;
     margin-bottom: 1.5rem;
 }
+@media (min-width: 480px) {
+    .payment-options { grid-template-columns: 1fr 1fr; } /* 2 columnas desde 480px */
+}
+
 .payment-option input[type="radio"] {
     display: none;
 }
-.payment-option label {
+
+/* Label en fila, altura flexible y alineado al centro */
+.payment-option label,
+.payment-option label.payment-label-flex {
     display: flex;
-    flex-direction: column;
     align-items: center;
-    justify-content: center;
-    padding: 1rem;
+    gap: 12px;
+    padding: 0.9rem 1rem;
     border: 2px solid #e5e5e5;
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.3s ease;
-    height: 100px;
+    height: auto;             /* eliminar alto fijo */
+    min-height: 56px;         /* tacto cómodo */
+    flex-direction: row;      /* fila en todos los dispositivos */
+    background-color: #fff;
 }
+
+/* Hover/Checked */
 .payment-option label:hover {
     border-color: #1a1a1a;
     background-color: #f7f7f7;
@@ -2031,18 +2039,62 @@ footer {
 .payment-option input[type="radio"]:checked + label {
     border-color: #1a1a1a;
     background-color: #f7f7f7;
-    box-shadow: 0 0 0 2px #1a1a1a;
-}
-.payment-option img {
-    height: 30px;
-    margin-bottom: 0.5rem;
-}
-.payment-option span {
-    font-weight: 500;
-    font-size: 0.9rem;
-    color: #333;
+    box-shadow: 0 0 0 2px #1a1a1a inset;
 }
 
+/* Texto dentro del label */
+.payment-option span {
+    font-weight: 500;
+    font-size: 0.95rem;
+    color: #333;
+    line-height: 1.2;
+}
+
+/* Iconos: se adaptan con clamp; múltiples logos (Nequi/Davi) no se pisan */
+.payment-option img,
+.payment-label-flex img,
+.payment-icon-wrapper img {
+    height: clamp(20px, 2.6vw, 28px);
+    width: auto;
+    max-width: 120px;
+    object-fit: contain;
+    display: inline-block;
+    image-rendering: -webkit-optimize-contrast;
+    margin: 0; /* quita margin-bottom del diseño anterior */
+}
+
+.payment-icon-wrapper {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Afinado en pantallas anchas (un poco más de presencia del logo) */
+@media (min-width: 1024px) {
+    .payment-option img,
+    .payment-label-flex img,
+    .payment-icon-wrapper img {
+        height: clamp(22px, 1.6vw, 34px);
+    }
+}
+
+/* Compatibilidad con el bloque previo del modal fullscreen */
+.payment-modal-overlay .payment-label-flex {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    vertical-align: middle !important;
+}
+.payment-modal-overlay .payment-label-flex img,
+.payment-modal-overlay .payment-icon-wrapper img {
+    height: clamp(20px, 2.6vw, 28px) !important;
+    width: auto !important;
+    max-width: 140px !important;
+    object-fit: contain !important;
+    display: inline-block !important;
+}
+
+/* ===== Botones paso 2/3 ===== */
 #whatsapp-message-textarea {
     width: 100%;
     height: 180px;
@@ -2197,35 +2249,6 @@ footer {
 }
 
 
-/* === PAYMENT MODAL IMAGE LAYOUT (PC & Mobile) === */
-.payment-modal-overlay .payment-label-flex {
-  display: inline-flex !important;
-  align-items: center !important;
-  gap: 10px !important;
-  vertical-align: middle !important;
-}
-.payment-modal-overlay .payment-label-flex img {
-  height: 24px !important;
-  width: auto !important;
-  max-width: 120px !important;
-  object-fit: contain !important;
-  display: inline-block !important;
-}
-.payment-modal-overlay .payment-icon-wrapper img {
-  height: 24px !important;
-  width: auto !important;
-  max-width: 120px !important;
-  object-fit: contain !important;
-  display: inline-block !important;
-}
-/* Any image in modal content should never overflow */
-.payment-modal-overlay .payment-modal-content img {
-  max-width: 100% !important;
-  height: auto !important;
-  object-fit: contain !important;
-}
-
-
 /* === MOBILE SCROLLING FIX === */
 @media (max-width: 768px) {
   .payment-modal-overlay.payment-fullscreen {
@@ -2247,12 +2270,11 @@ footer {
 @media (min-width: 1025px) {
   .payment-modal-overlay .payment-label-flex img,
   .payment-modal-overlay .payment-icon-wrapper img {
-    height: auto !important;
+    height: clamp(22px, 1.6vw, 34px) !important;
     max-width: 100% !important;
     object-fit: contain !important;
   }
 }
-
 
 /* ===================================================================
    PC FULLSCREEN for STEP 1 ("Datos y Resumen")
@@ -2409,3 +2431,35 @@ footer {
   .testimonial-slide { padding: 14px; border-radius: 16px; }
   .testimonial-image { max-width: 95%; border-radius: 10px; }
 }
+
+/* === FULL-BLEED: Barra de anuncio completamente blanca de lado a lado === */
+header .announcement-bar {
+  position: relative;
+  background: #ffffff !important;
+  color: #000000 !important;
+  border-bottom: 1px solid #eaeaea !important;
+  box-shadow: 0 0 0 100vmax #ffffff;
+  clip-path: inset(0 -100vmax);
+}
+header .announcement-bar .announcement-bar__message { color: #000000 !important; }
+
+/* === Navbar oscuro (mantener), barra de anuncio blanca === */
+header {
+  background-color: #000000 !important;
+}
+header .main-nav { background-color: transparent !important; }
+header .logo .logo-main { color: #ffffff !important; text-shadow: 0 0 2px #fff, 0 0 5px #fff !important; }
+header .logo .logo-sub { color: var(--color-primario) !important; }
+header .nav-links a { color: var(--color-texto-secundario) !important; }
+header .nav-links a:hover { color: #ffffff !important; }
+header .cart-icon i, header .hamburger { color: var(--color-texto-secundario) !important; }
+header .cart-icon:hover i { color: #ffffff !important; }
+
+/* === Buscador oscuro (revertir a estilo original) === */
+header .search-bar .search-input {
+  background-color: var(--color-fondo-input) !important;
+  color: var(--color-texto-principal) !important;
+  border: 1px solid var(--color-borde) !important;
+}
+header .search-bar .search-input::placeholder { color: #888 !important; }
+header .search-bar .search-icon { color: #888 !important; }
