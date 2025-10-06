@@ -402,24 +402,26 @@ header.header-scrolled .logo {
     gap: 20px;
 }
 
+/* ====== ACTUALIZADO: recuadros en blanco y texto negro ====== */
 .explanation-card {
-    background-color: var(--color-fondo-input);
-    border: 1px solid var(--color-borde);
+    background-color: #ffffff;                      /* fondo blanco */
+    border: 1px solid var(--color-borde-suave);    /* borde claro */
     border-radius: 20px;
     padding: 20px;
     text-align: left;
     box-shadow: 0 5px 25px rgba(0,0,0,0.04);
     transition: transform 0.3s, box-shadow 0.3s, opacity 0.5s ease-out, transform 0.5s ease-out;
 }
-
 .explanation-card:hover {
     transform: translateY(-8px);
     box-shadow: 0 12px 30px rgba(0,0,0,0.08);
 }
 
+/* >>> ACTUALIZADO: círculo con BORDE NEGRO, SIN relleno, número negro <<< */
 .explanation-card .card-number {
-    background-color: var(--color-primario);
-    color: #000;
+    background: transparent;      /* sin relleno */
+    color: #000;                  /* número negro */
+    border: 2px solid #000;       /* borde negro */
     width: 35px;
     height: 35px;
     border-radius: 50%;
@@ -431,16 +433,16 @@ header.header-scrolled .logo {
     margin-bottom: 15px;
 }
 
+/* títulos y párrafos en negro */
 .explanation-card h3 {
     font-size: 0.8rem;
     font-weight: 700;
     margin-bottom: 6px;
-    color: var(--color-texto-principal);
+    color: #000000;                            /* texto negro */
 }
-
 .explanation-card p {
     font-size: 0.7rem;
-    color: var(--color-texto-secundario);
+    color: #000000;                            /* texto negro */
     line-height: 1.5;
 }
 

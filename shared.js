@@ -164,6 +164,7 @@ document.addEventListener('DOMContentLoaded', function() {
             nombre:     get('#recipient-name')      || get('#billing_first_name') || get('[name="billing_first_name"]'),
             apellidos:  get('#recipient-lastname')  || get('#billing_last_name')  || get('[name="billing_last_name"]'),
             pais:       get('#billing-country')     || get('#billing_country')    || get('[name="billing_country"]') || 'Colombia',
+            cc:         get('#billing-id'), // NUEVO: CC/Pasaporte (OBLIGATORIO)
             direccion:  get('#shipping-address')    || get('#billing_address_1')  || get('[name="billing_address_1"]'),
             direccion2: get('#shipping-address-2')  || get('#billing_address_2')  || get('[name="billing_address_2"]'),
             ciudad:     get('#billing-city')        || get('#billing_city')       || get('[name="billing_city"]'),
@@ -183,6 +184,7 @@ document.addEventListener('DOMContentLoaded', function() {
         L.push('*DATOS DE FACTURACIÓN*');
         if (facturacion.nombre)       L.push(`- *Nombre:* ${facturacion.nombre}`);
         if (facturacion.apellidos)    L.push(`- *Apellidos:* ${facturacion.apellidos}`);
+        if (facturacion.cc)           L.push(`- *CC/Pasaporte:* ${facturacion.cc}`);
         if (facturacion.pais)         L.push(`- *País/Región:* ${facturacion.pais}`);
         if (facturacion.direccion)    L.push(`- *Dirección:* ${facturacion.direccion}`);
         if (facturacion.direccion2)   L.push(`- *Apto/Det:* ${facturacion.direccion2}`);
@@ -237,18 +239,22 @@ document.addEventListener('DOMContentLoaded', function() {
                       <div class="two-col">
                         <div class="col form-col">
                           <div class="form-grid">
-                            <input type="text" id="recipient-name" placeholder="Nombre *" autocomplete="given-name">
-                            <input type="text" id="recipient-lastname" placeholder="Apellidos *" autocomplete="family-name">
-                            <select id="billing-country">
+                            <input type="text" id="recipient-name" placeholder="Nombre *" autocomplete="given-name" required>
+                            <input type="text" id="recipient-lastname" placeholder="Apellidos *" autocomplete="family-name" required>
+                            <select id="billing-country" required>
                               <option value="Colombia" selected>Colombia</option>
                             </select>
-                            <input type="text" id="shipping-address" placeholder="Dirección de la calle *" autocomplete="address-line1">
+                            <!-- NUEVO: CC/Pasaporte obligatorio -->
+                            <input type="text" id="billing-id" placeholder="CC / Pasaporte *" autocomplete="off" required>
+
+                            <input type="text" id="shipping-address" placeholder="Dirección de la calle *" autocomplete="address-line1" required>
                             <input type="text" id="shipping-address-2" placeholder="Apartamento, habitación, etc. (opcional)" autocomplete="address-line2">
-                            <input type="text" id="billing-city" placeholder="Población *" autocomplete="address-level2">
-                            <input type="text" id="billing-state" placeholder="Departamento *" autocomplete="address-level1">
+                            <!-- CAMBIO: Población -> Ciudad -->
+                            <input type="text" id="billing-city" placeholder="Ciudad *" autocomplete="address-level2" required>
+                            <input type="text" id="billing-state" placeholder="Departamento *" autocomplete="address-level1" required>
                             <input type="text" id="billing-postcode" placeholder="Código postal (opcional)" autocomplete="postal-code">
                             <input type="tel"  id="billing-phone" placeholder="Teléfono (opcional)" autocomplete="tel">
-                            <input type="email" id="billing-email" placeholder="Correo electrónico *" autocomplete="email">
+                            <input type="email" id="billing-email" placeholder="Correo electrónico *" autocomplete="email" required>
                             <textarea id="order-notes" placeholder="Notas del pedido (opcional)"></textarea>
                           </div>
                           <div class="modal-actions">
@@ -514,6 +520,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const d = collectBillingData(modalOverlay);
             pv.innerHTML = `
               <div class="line"><strong>Nombre:</strong><span>${(d.nombre||'')} ${(d.apellidos||'')}</span></div>
+              <div class="line"><strong>CC/Pasaporte:</strong><span>${d.cc||''}</span></div>
               <div class="line"><strong>País:</strong><span>${d.pais||''}</span></div>
               <div class="line"><strong>Dirección:</strong><span>${d.direccion||''}${d.direccion2?(' - '+d.direccion2):''}</span></div>
               <div class="line"><strong>Ciudad/Depto:</strong><span>${d.ciudad||''}${d.departamento?(' / '+d.departamento):''}</span></div>
@@ -528,10 +535,19 @@ document.addEventListener('DOMContentLoaded', function() {
         updateBillingPreview();
 
         // ---------- Validación Paso 1 ----------
-        const requiredIds = ['#recipient-name','#recipient-lastname','#shipping-address','#billing-city','#billing-state','#billing-email'];
+        // Campos obligatorios, incluyendo CC/Pasaporte
+        const requiredIds = [
+            '#recipient-name',
+            '#recipient-lastname',
+            '#billing-id',
+            '#shipping-address',
+            '#billing-city',
+            '#billing-state',
+            '#billing-email'
+        ];
         const btnToStep2 = modalOverlay.querySelector('#to-step-2');
         function validateStep1() {
-            const ok = requiredIds.every(sel => (modalOverlay.querySelector(sel)?.value || '').trim().length > 1);
+            const ok = requiredIds.every(sel => (modalOverlay.querySelector(sel)?.value || '').trim().length > 0);
             btnToStep2.disabled = !ok;
         }
         modalOverlay.querySelectorAll('#view-1 input, #view-1 textarea, #view-1 select').forEach(el => {
